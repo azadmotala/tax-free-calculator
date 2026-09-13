@@ -444,7 +444,9 @@
       const left = base.untilIdx - r.i;
       note += '<div class="note"><strong>Halfway there.</strong> You’re past half of the ' + fmtShort(base.final) + ' you’ll have at ' + S.until + '. It took ' + (r.i + 1) + ' years to get here, and ' + (left === 1 ? 'the last year adds' : 'the last ' + left + ' add') + ' as much again.</div>';
     }
-    tip.innerHTML = '<div class="cap">' + r.year + ' · age ' + r.age + '</div><div class="v">' + fmtBig(r.closing) + '</div><div class="s">' + fmtBig(r.growth, true) + ' growth this year</div><div class="s">' + dep + '</div>' + note;
+    tip.innerHTML = '<div class="cap">' + r.year + ' · age ' + r.age + '</div><div class="v">' + fmtBig(r.closing) + '</div>' + (note
+      ? '<div class="s">' + fmtBig(r.growth, true) + ' growth · ' + dep + '</div>'
+      : '<div class="s">' + fmtBig(r.growth, true) + ' growth this year</div><div class="s">' + dep + '</div>') + note;
     tip.style.left = '0px'; tip.style.top = '0px';
     const tw = tip.offsetWidth || 200, th = tip.offsetHeight || 96;
     const pos = placeCard(px, py, tw, th, W, H);
