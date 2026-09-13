@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Tax-free savings calculator</title>
+  <rect width="512" height="512" rx="112" fill="#0d1115"/>
+  <!-- Area under the whole curve, like the chart on the page. The mark sits within Android's
+       maskable safe circle (radius 205 around the centre), line thickness included. -->
+  <path d="M132 392 L132 360 C 212 356 280 318 318 250 C 340 210 356 176 380 152 L 380 392 Z" fill="#6fd6b8" fill-opacity="0.2"/>
+  <!-- Drawdown tail in white, then the saving curve in mint drawn over the join. -->
+  <path d="M318 250 C 340 210 356 176 380 152" fill="none" stroke="#e9ecef" stroke-width="48" stroke-linecap="round"/>
+  <path d="M132 360 C 212 356 280 318 318 250" fill="none" stroke="#6fd6b8" stroke-width="48" stroke-linecap="round"/>
+</svg>
