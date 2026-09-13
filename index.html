@@ -34,12 +34,11 @@
 
   .wrap { padding: 0 clamp(16px, 4.4vw, 64px) 40px; }
   .sentence { margin: 30px 0 0; font-family: var(--disp); font-weight: 300; font-size: clamp(22px, 2.2vw, 31px); line-height: 1.4; letter-spacing: -0.01em; max-width: 1312px; text-wrap: pretty; }
-  .num { display: inline-block; color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; text-align: center; text-decoration: underline; text-decoration-style: dotted; text-decoration-thickness: 1.5px; text-underline-offset: 7px; cursor: ew-resize; user-select: none; -webkit-user-select: none; touch-action: none; border-radius: 4px; padding: 0 2px; outline: none; }
-  .num[data-key="age"], .num[data-key="until"] { min-width: 3ch; }
-  .num[data-key="startYear"] { min-width: 4.4ch; }
-  .num[data-key="contrib"] { min-width: 8.2ch; }
-  .num[data-key="gross"], .num[data-key="fees"], .num[data-key="rate"] { min-width: 7.6ch; }
-  .num[data-key="end"] { min-width: 3ch; }
+  .num { display: inline-block; color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; text-align: left; text-decoration: underline; text-decoration-style: dotted; text-decoration-thickness: 1.5px; text-underline-offset: 7px; cursor: ew-resize; user-select: none; -webkit-user-select: none; touch-action: none; border-radius: 4px; padding: 0 1px; outline: none; }
+  .num[data-key="age"], .num[data-key="until"], .num[data-key="end"] { min-width: 2ch; }
+  .num[data-key="startYear"] { min-width: 4ch; }
+  .num[data-key="contrib"] { min-width: 6.8ch; }
+  .num[data-key="gross"], .num[data-key="fees"], .num[data-key="rate"] { min-width: 5ch; }
   .sentence.second { margin-top: 10px; }
   .sentence .summary { color: var(--muted); }
   .num:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
@@ -472,7 +471,7 @@
     const left = px + 14 + tw > W ? px - 14 - tw : px + 14;
     tip.style.left = Math.max(0, left) + 'px';
     const th = tip.offsetHeight || 96;
-    tip.style.top = Math.min(H - th, Math.max(6, py - 90)) + 'px';
+    tip.style.top = Math.min(H - th, Math.max(28, py - 90)) + 'px';
   }
 
   function renderTable() {
