@@ -33,33 +33,33 @@
   .share { appearance: none; border: 0; display: inline-flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 500; cursor: pointer; }
 
   .wrap { padding: 0 clamp(16px, 4.4vw, 64px) 40px; }
-  .sentence { margin: 30px 0 0; font-family: var(--disp); font-weight: 300; font-size: clamp(22px, 2.2vw, 31px); line-height: 1.4; letter-spacing: -0.01em; max-width: 1312px; text-wrap: pretty; }
+  .sentence { margin: 22px 0 0; font-family: var(--disp); font-weight: 300; font-size: clamp(20px, 1.9vw, 27px); line-height: 1.35; letter-spacing: -0.01em; max-width: 1312px; text-wrap: pretty; }
   .num { display: inline-block; color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; text-align: left; text-decoration: underline; text-decoration-style: dotted; text-decoration-thickness: 1.5px; text-underline-offset: 7px; cursor: ew-resize; user-select: none; -webkit-user-select: none; touch-action: none; border-radius: 4px; padding: 0 1px; outline: none; }
   .num[data-key="age"], .num[data-key="until"], .num[data-key="end"] { min-width: 2ch; }
   .num[data-key="startYear"] { min-width: 4ch; }
   .num[data-key="contrib"] { min-width: 6.8ch; }
   .num[data-key="gross"], .num[data-key="fees"], .num[data-key="rate"] { min-width: 5ch; }
-  .sentence.second { margin-top: 10px; }
+  .sentence.second { margin-top: 6px; }
   .sentence .summary { color: var(--muted); }
   .num:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
   .num.dragging { background: var(--accent-fade); }
   .num input { font: inherit; color: var(--accent); background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 0 4px; width: 100%; min-width: 5ch; outline: none; text-align: center; }
   .cap { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-  .hint { margin-top: 10px; }
+  .hint { margin-top: 8px; }
   .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-  .hero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; margin-top: 28px; }
+  .hero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; margin-top: 20px; }
   .hero-block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .hero-block.draw { padding-left: 40px; border-left: 1px solid var(--line); }
-  .big { font-family: var(--disp); font-weight: 700; font-size: clamp(52px, 6vw, 88px); line-height: 0.88; letter-spacing: -0.035em; color: var(--white); }
+  .big { font-family: var(--disp); font-weight: 700; font-size: clamp(48px, 5.4vw, 76px); line-height: 0.88; letter-spacing: -0.035em; color: var(--white); }
   .hero-block.save .big { color: var(--accent); }
-  .readouts { display: flex; gap: 16px 32px; flex-wrap: wrap; margin-top: 12px; }
+  .readouts { display: flex; gap: 16px 32px; flex-wrap: wrap; margin-top: 10px; }
   .readout { display: flex; flex-direction: column; gap: 6px; }
   .readout .mono { font-size: 20px; }
   .readout.accent .mono { color: var(--accent); }
 
-  .chart { position: relative; margin-top: 26px; height: 344px; }
-  .chart svg { display: block; width: 100%; height: 300px; overflow: visible; }
+  .chart { position: relative; margin-top: 14px; height: 304px; }
+  .chart svg { display: block; width: 100%; height: 260px; overflow: visible; }
   .ylab { position: absolute; left: 0; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; }
   .tip { position: absolute; display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); min-width: 190px; pointer-events: none; }
   .tip .cap { color: var(--accent); }
@@ -70,15 +70,15 @@
   .tip .note { max-width: 250px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-2); font-size: 12px; line-height: 1.45; color: var(--text); }
   .tip .note strong { color: var(--accent); font-weight: 500; }
   .dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 6px; background: var(--bg); border: 2px solid var(--text); pointer-events: none; }
-  .axis { position: absolute; left: 0; right: 0; top: 306px; height: 38px; }
+  .axis { position: absolute; left: 0; right: 0; top: 266px; height: 38px; }
   .axis span, .endlab { position: absolute; font-family: var(--mono); font-size: 11px; white-space: nowrap; color: var(--text); }
   .axis span.edge { color: var(--muted); }
   .axis span.r { transform: translateX(-100%); padding-right: 6px; }
   .axis span.l { padding-left: 6px; }
   .endlab { color: var(--muted); transform: translate(-100%, -100%); padding: 0 0 4px; pointer-events: none; }
 
-  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
-  .tile { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; padding: 18px 20px; border-radius: 12px; background: var(--surface); min-height: 112px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+  .tile { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; padding: 16px 18px; border-radius: 12px; background: var(--surface); min-height: 96px; }
   .tile .n { font-family: var(--disp); font-size: 30px; font-weight: 500; line-height: 1; color: var(--white); }
   .tile .t { font-size: 12px; line-height: 1.45; color: var(--muted); margin-top: 6px; }
   .tile.accent { background: var(--accent); color: var(--accent-ink); }
@@ -105,7 +105,13 @@
   tr.mark td { background: var(--surface); }
   tr:last-child td { border-bottom: 0; }
 
-  .foot { margin-top: 28px; max-width: 900px; line-height: 1.7; text-transform: none; letter-spacing: 0.02em; }
+  .foot { margin-top: 12px; max-width: 900px; line-height: 1.7; text-transform: none; letter-spacing: 0.02em; }
+  .foot summary { cursor: pointer; text-transform: uppercase; letter-spacing: 0.1em; list-style: none; }
+  .foot summary::-webkit-details-marker { display: none; }
+  .foot summary::before { content: "+ "; }
+  .foot[open] summary::before { content: "\2212 "; }
+  .foot p { margin: 8px 0 0; }
+  .wrap { padding-bottom: 6px; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   .toast.on { opacity: 1; }
 
@@ -191,7 +197,7 @@
       </div>
     </section>
 
-    <p class="cap foot">Each deposit goes in at the start of the year and grows once a year at your return minus fees. The ordinary-account comparison assumes a 3% dividend yield taxed at 20%, and 18% capital gains tax when you cash out. SARS annual limits follow the year of each deposit: R30&nbsp;000 from March 2015, R33&nbsp;000 from March 2017, R36&nbsp;000 from March 2020 and R46&nbsp;000 from March 2026, with a R500&nbsp;000 lifetime limit and 40% tax on anything over.</p>
+    <details class="cap foot"><summary>How it calculates</summary><p>Each deposit goes in at the start of the year and grows once a year at your return minus fees. Withdrawals start the year after you stop adding, each one a fixed share of that year's opening balance, taken before growth. The ordinary-account comparison assumes a 3% dividend yield taxed at 20%, and 18% capital gains tax when you cash out. SARS annual limits follow the year of each deposit: R30&nbsp;000 from March 2015, R33&nbsp;000 from March 2017, R36&nbsp;000 from March 2020 and R46&nbsp;000 from March 2026, with a R500&nbsp;000 lifetime limit and 40% tax on anything over.</p></details>
   </main>
   <div class="toast" id="toast" role="status"></div>
 </div>
@@ -393,7 +399,7 @@
     for (let v = step; v <= yMax + 1e-6; v += step) svg += '<line x1="0" x2="' + W + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#1f262d" stroke-width="1"></line>';
     svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#1f262d" stroke-width="1"></line>';
     svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6b8" stop-opacity="0.28"></stop><stop offset="1" stop-color="#6fd6b8" stop-opacity="0"></stop></linearGradient>'
-        + '<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#e9ecef" stroke-opacity="0.22" stroke-width="1.2"></line></pattern></defs>';
+        + '<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#e9ecef" fill-opacity="0.05"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#e9ecef" stroke-opacity="0.42" stroke-width="1.2"></line></pattern></defs>';
     const u = base.untilIdx, xu = x(u).toFixed(1);
     const ptsSave = pts.slice(0, u + 1), ptsDraw = pts.slice(u);
     svg += '<path d="M' + ptsSave.join(' L') + ' L' + xu + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
