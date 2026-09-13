@@ -435,14 +435,14 @@
       const next = base.rows[r.i + 1], keeps = (1 - S.rate / 100) * (1 + (S.gross - S.fees) / 100) >= 1;
       note += '<div class="note"><strong>You start drawing.</strong> From next year you take ' + fmtPct(S.rate) + ' of the balance each year, ' + fmtBig(next.withdrawal / 12) + ' a month to start. ' + (keeps ? 'Growth at ' + fmtPct(S.gross - S.fees) + ' after fees outpaces what you take, so the balance keeps rising.' : 'That is more than the ' + fmtPct(S.gross - S.fees) + ' it earns after fees, so the balance shrinks each year.') + '</div>';
     }
-    if (r.i === base.outpace) note += '<div class="note"><strong>Growth outpaces deposits.</strong> The account earned ' + fmtBig(r.growth) + ' this year, more than the ' + fmtR(r.planned) + ' you put in. From here it adds more to itself each year than you do.</div>';
+    if (r.i === base.outpace) note += '<div class="note"><strong>Growth outpaces deposits.</strong> It earned ' + fmtBig(r.growth) + ' this year, more than your ' + fmtR(r.planned) + '.</div>';
     if (r.i === base.limit) {
-      const left = base.n - 1 - r.i;
-      note += '<div class="note"><strong>Lifetime limit reached.</strong> This ' + fmtR(r.deposit) + ' deposit brings the total to R500' + NB + '000, the most SARS allows into a tax-free account. Nothing more can go in' + (left > 0 ? ', so the next ' + left + (left === 1 ? ' year is' : ' years are') + ' growth alone.' : '.') + '</div>';
+      const left = base.untilIdx - r.i;
+      note += '<div class="note"><strong>Lifetime limit reached.</strong> This ' + fmtR(r.deposit) + ' takes you to R500' + NB + '000, the most SARS allows.' + (left > 0 ? ' The next ' + left + (left === 1 ? ' year is' : ' years are') + ' growth alone.' : '') + '</div>';
     }
     if (r.i === base.half) {
-      const left = base.n - 1 - r.i;
-      note += '<div class="note"><strong>Halfway there.</strong> The balance has just passed half of the ' + fmtShort(base.final) + ' you end with. It took ' + (r.i + 1) + ' years to get here. The last ' + left + (left === 1 ? ' year adds' : ' years add') + ' as much again, because there’s so much more money earning now.</div>';
+      const left = base.untilIdx - r.i;
+      note += '<div class="note"><strong>Halfway there.</strong> You’re past half of the ' + fmtShort(base.final) + ' you’ll have at ' + S.until + '. It took ' + (r.i + 1) + ' years to get here, and ' + (left === 1 ? 'the last year adds' : 'the last ' + left + ' add') + ' as much again.</div>';
     }
     tip.innerHTML = '<div class="cap">' + r.year + ' · age ' + r.age + '</div><div class="v">' + fmtBig(r.closing) + '</div><div class="s">' + fmtBig(r.growth, true) + ' growth this year</div><div class="s">' + dep + '</div>' + note;
     tip.style.left = '0px'; tip.style.top = '0px';
