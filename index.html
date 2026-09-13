@@ -1,0 +1,528 @@
+<title>Tax-Free Savings Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700&family=DM+Sans:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #0d1115;
+    --surface: #12181e;
+    --line: #1f262d;
+    --line-2: #2b343c;
+    --text: #e9ecef;
+    --muted: #7b858e;
+    --white: #ffffff;
+    --accent: #6fd6b8;
+    --accent-ink: #0d1115;
+    --accent-fade: rgba(111, 214, 184, 0.14);
+    --disp: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --body: "DM Sans", "Helvetica Neue", Arial, sans-serif;
+    --mono: "Geist Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); }
+  body { margin: 0; color: var(--text); font-family: var(--body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; }
+  .page { max-width: 1440px; margin: 0 auto; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 52px; padding: 8px clamp(16px, 4.4vw, 64px); border-bottom: 1px solid var(--line); }
+  .brand { font-family: var(--disp); font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+  .seg { display: flex; gap: 2px; padding: 3px; background: var(--surface); border-radius: 999px; }
+  .seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font-weight: 500; font-size: 12px; padding: 6px 16px; border-radius: 999px; cursor: pointer; min-height: 30px; }
+  .seg button[aria-pressed="true"] { background: var(--line); color: var(--text); }
+  .seg button:focus-visible, .share:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .share { appearance: none; border: 0; display: inline-flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 500; cursor: pointer; }
+
+  .wrap { padding: 0 clamp(16px, 4.4vw, 64px) 40px; }
+  .sentence { margin: 30px 0 0; font-family: var(--disp); font-weight: 300; font-size: clamp(22px, 2.2vw, 31px); line-height: 1.4; letter-spacing: -0.01em; max-width: 1312px; text-wrap: pretty; }
+  .num { display: inline-block; color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; text-align: center; text-decoration: underline; text-decoration-style: dotted; text-decoration-thickness: 1.5px; text-underline-offset: 7px; cursor: ew-resize; user-select: none; -webkit-user-select: none; touch-action: none; border-radius: 4px; padding: 0 2px; outline: none; }
+  .num[data-key="age"], .num[data-key="until"] { min-width: 3ch; }
+  .num[data-key="startYear"] { min-width: 4.4ch; }
+  .num[data-key="contrib"] { min-width: 8.2ch; }
+  .num[data-key="gross"], .num[data-key="fees"] { min-width: 7.6ch; }
+  .num:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  .num.dragging { background: var(--accent-fade); }
+  .num input { font: inherit; color: var(--accent); background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 0 4px; width: 100%; min-width: 5ch; outline: none; text-align: center; }
+  .cap { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .hint { margin-top: 10px; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px 40px; flex-wrap: wrap; margin-top: 26px; }
+  .hero-main { display: flex; flex-direction: column; gap: 8px; }
+  .big { font-family: var(--disp); font-weight: 700; font-size: clamp(64px, 7.2vw, 104px); line-height: 0.88; letter-spacing: -0.035em; color: var(--white); }
+  .readouts { display: flex; gap: 20px 40px; flex-wrap: wrap; padding-bottom: 6px; }
+  .readout { display: flex; flex-direction: column; gap: 6px; }
+  .readout .mono { font-size: 20px; }
+  .readout.accent .mono { color: var(--accent); }
+
+  .chart { position: relative; margin-top: 26px; height: 344px; }
+  .chart svg { display: block; width: 100%; height: 300px; overflow: visible; }
+  .ylab { position: absolute; left: 0; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; }
+  .tip { position: absolute; display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); min-width: 190px; pointer-events: none; }
+  .tip .cap { color: var(--accent); }
+  .tip .v { font-family: var(--mono); font-size: 20px; color: var(--white); font-variant-numeric: tabular-nums; }
+  .tip .s { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .tip .note { max-width: 250px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-2); font-size: 12px; line-height: 1.45; color: var(--text); }
+  .tip .note strong { color: var(--accent); font-weight: 500; }
+  .dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 6px; background: var(--bg); border: 2px solid var(--text); pointer-events: none; }
+  .axis { position: absolute; left: 0; right: 0; top: 306px; height: 38px; }
+  .axis span, .endlab { position: absolute; font-family: var(--mono); font-size: 11px; white-space: nowrap; color: var(--text); }
+  .axis span.edge { color: var(--muted); }
+  .axis span.r { transform: translateX(-100%); padding-right: 6px; }
+  .axis span.l { padding-left: 6px; }
+  .endlab { color: var(--muted); transform: translate(-100%, -100%); padding: 0 0 4px; pointer-events: none; }
+
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+  .tile { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; padding: 18px 20px; border-radius: 12px; background: var(--surface); min-height: 112px; }
+  .tile .n { font-family: var(--disp); font-size: 30px; font-weight: 500; line-height: 1; color: var(--white); }
+  .tile .t { font-size: 12px; line-height: 1.45; color: var(--muted); margin-top: 6px; }
+  .tile.accent { background: var(--accent); color: var(--accent-ink); }
+  .tile.accent .cap, .tile.accent .n, .tile.accent .t { color: var(--accent-ink); }
+
+  .panel { margin-top: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { appearance: none; background: transparent; border: 1px solid var(--line-2); color: var(--text); border-radius: 999px; padding: 8px 14px; font-size: 12px; cursor: pointer; min-height: 36px; }
+  .chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+  .list .row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .list .row .mono { font-size: 14px; }
+  .list .row .delta { color: var(--muted); min-width: 9ch; text-align: right; }
+  .list .row.plan .mono { color: var(--accent); }
+  .empty { color: var(--muted); font-size: 13px; }
+
+  .tablewrap { margin-top: 22px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; }
+  th, td { padding: 10px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; color: var(--muted); position: sticky; top: 0; background: var(--bg); }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  td { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td.note { font-family: var(--body); color: var(--accent); text-align: left; }
+  tr.mark td { background: var(--surface); }
+  tr:last-child td { border-bottom: 0; }
+
+  .foot { margin-top: 28px; max-width: 900px; line-height: 1.7; text-transform: none; letter-spacing: 0.02em; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .toast.on { opacity: 1; }
+
+  @media (max-width: 960px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile.accent { grid-column: 1 / -1; } }
+  @media (max-width: 640px) {
+    .top { padding-top: 10px; padding-bottom: 10px; }
+    .seg { order: 3; width: 100%; justify-content: stretch; }
+    .seg button { flex: 1; }
+    .tiles { grid-template-columns: minmax(0, 1fr); }
+    .chart { height: 284px; } .chart svg { height: 240px; } .axis { top: 246px; }
+    .list .row { grid-template-columns: minmax(0, 1fr) auto; } .list .row .delta { grid-column: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<div class="page">
+  <header class="top">
+    <div class="brand">Tax-free savings calculator</div>
+    <div class="seg" role="group" aria-label="View">
+      <button type="button" data-view="plan" aria-pressed="true">Plan</button>
+      <button type="button" data-view="table" aria-pressed="false">Year by year</button>
+      <button type="button" data-view="whatif" aria-pressed="false">What if</button>
+    </div>
+    <button type="button" class="share" id="share">Share plan</button>
+  </header>
+
+  <main class="wrap">
+    <p class="sentence" id="sentence">I&rsquo;m <span class="num" data-key="age" tabindex="0" role="spinbutton" aria-label="Your age now"></span>. From <span class="num" data-key="startYear" tabindex="0" role="spinbutton" aria-label="Start year"></span> I&rsquo;ll add <span class="num" data-key="contrib" tabindex="0" role="spinbutton" aria-label="Deposit each year"></span> a year, earning <span class="num" data-key="gross" tabindex="0" role="spinbutton" aria-label="Return before fees"></span> before <span class="num" data-key="fees" tabindex="0" role="spinbutton" aria-label="Fees"></span> in fees, and I&rsquo;ll leave it until I&rsquo;m <span class="num" data-key="until" tabindex="0" role="spinbutton" aria-label="Age you stop"></span>.</p>
+    <div class="cap hint" id="hint"></div>
+
+    <section class="hero" aria-live="polite">
+      <div class="hero-main">
+        <div class="cap" id="heroCap"></div>
+        <div class="big" id="heroValue"></div>
+      </div>
+      <div class="readouts">
+        <div class="readout"><div class="cap">You put in</div><div class="mono" id="rPutIn"></div></div>
+        <div class="readout accent"><div class="cap">Growth</div><div class="mono" id="rGrowth"></div></div>
+        <div class="readout"><div class="cap">Every R1 becomes</div><div class="mono" id="rMultiple"></div></div>
+        <div class="readout"><div class="cap">Tax you&rsquo;d have paid</div><div class="mono" id="rTax"></div></div>
+      </div>
+    </section>
+
+    <section class="chart" id="chart" aria-label="Fund value by age">
+      <svg id="svg" aria-hidden="true"></svg>
+      <div id="overlay"></div>
+      <div class="dot" id="dot"></div>
+      <div class="tip" id="tip"></div>
+      <div class="axis" id="axis"></div>
+    </section>
+
+    <section class="tiles" id="tiles">
+      <div class="tile"><div class="cap">The cost of waiting one year</div><div><div class="n" id="tWait"></div><div class="t" id="tWaitT"></div></div></div>
+      <div class="tile"><div class="cap">The cost of 1% more in fees</div><div><div class="n" id="tFees"></div><div class="t" id="tFeesT"></div></div></div>
+      <div class="tile accent"><div class="cap">What tax-free saves you</div><div><div class="n" id="tWrap"></div><div class="t" id="tWrapT"></div></div></div>
+    </section>
+
+    <section class="panel" id="whatif" hidden>
+      <div class="chips" id="chips" role="group" aria-label="Scenarios"></div>
+      <div class="list" id="scenList"></div>
+    </section>
+
+    <section id="table" hidden>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Age</th><th>Year</th><th>Deposit</th><th>Total deposited</th><th>Opening</th><th>Growth</th><th>Closing</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="cap foot">Each deposit goes in at the start of the year and grows once a year at your return minus fees. The ordinary-account comparison assumes a 3% dividend yield taxed at 20%, and 18% capital gains tax when you cash out. SARS annual limits follow the year of each deposit: R30&nbsp;000 from March 2015, R33&nbsp;000 from March 2017, R36&nbsp;000 from March 2020 and R46&nbsp;000 from March 2026, with a R500&nbsp;000 lifetime limit and 40% tax on anything over.</p>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const LIMIT = { lifetime: 500000 };
+  function limitFor(year) { return year <= 2016 ? 30000 : year <= 2019 ? 33000 : year <= 2025 ? 36000 : 46000; }
+  const TAXABLE = { divYield: 0.03, divTax: 0.2, cgt: 0.18 };
+  const FIELDS = {
+    age:       { min: 1,    max: 99,     step: 1,    px: 10, fmt: v => String(v) },
+    startYear: { min: 2015, max: 2080,   step: 1,    px: 10, fmt: v => String(v) },
+    contrib:   { min: 0,    max: 46000,  step: 500,  px: 3,  fmt: v => fmtR(v) },
+    gross:     { min: 0,    max: 20,     step: 0.05, px: 6,  prec: 2, fmt: v => fmtPct(v) },
+    fees:      { min: 0,    max: 5,      step: 0.01, px: 4,  prec: 2, fmt: v => fmtPct(v) },
+    until:     { min: 2,    max: 100,    step: 1,    px: 10, fmt: v => String(v) }
+  };
+  const SCENARIOS = [
+    { id: 'late1',   label: 'Start one year later',    dash: '6 4',      make: s => ({ ...s, age: s.age + 1, startYear: s.startYear + 1 }) },
+    { id: 'late5',   label: 'Start five years later',  dash: '2 4',      make: s => ({ ...s, age: s.age + 5, startYear: s.startYear + 5 }) },
+    { id: 'fees1',   label: 'Fees 1% higher',          dash: '10 4',     make: s => ({ ...s, fees: s.fees + 1 }) },
+    { id: 'half',    label: 'Half the deposit',        dash: '1 3',      make: s => ({ ...s, contrib: s.contrib / 2 }) },
+    { id: 'taxable', label: 'Taxable account instead', dash: '4 4 1 4',  taxable: true }
+  ];
+
+  let S = { age: 30, startYear: 2026, contrib: 46000, gross: 8.37, fees: 0.37, until: 65 };
+  let view = 'plan';
+  let active = new Set();
+  let scrub = -1;
+  let base = null;
+
+  const $ = id => document.getElementById(id);
+  const NB = ' ';
+  function group(n) { return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, NB); }
+  function fmtR(n, sign) { const s = n < 0 ? '−' : (sign && n > 0 ? '+' : ''); return s + 'R' + group(n); }
+  function fmtShort(n) {
+    const a = Math.abs(n), s = n < 0 ? '−' : '';
+    if (a >= 1e12) return s + 'R' + (a / 1e12).toFixed(2) + 'tn';
+    if (a >= 1e9) return s + 'R' + (a / 1e9).toFixed(a >= 1e11 ? 0 : 1) + 'bn';
+    if (a >= 1e6) return s + 'R' + (a / 1e6).toFixed(2) + 'm';
+    if (a >= 1e4) return s + 'R' + Math.round(a / 1e3) + 'k';
+    return s + 'R' + group(a);
+  }
+  function fmtBig(n, sign) { return Math.abs(n) >= 1e7 ? (sign && n > 0 ? '+' : '') + fmtShort(n) : fmtR(n, sign); }
+  function trim(x) { return Number.isInteger(x) ? String(x) : String(Number(x.toFixed(1))); }
+  function fmtTick(v) {
+    if (v >= 1e12) return 'R' + trim(v / 1e12) + 'tn';
+    if (v >= 1e9) return 'R' + trim(v / 1e9) + 'bn';
+    if (v >= 1e6) return 'R' + trim(v / 1e6) + 'm';
+    if (v >= 1e3) return 'R' + Math.round(v / 1e3) + 'k';
+    return 'R' + Math.round(v);
+  }
+  function fmtPct(v) { return v.toFixed(2) + '%'; }
+  const pct = fmtPct;
+
+  function clampState(s) {
+    const o = { ...s };
+    for (const k in FIELDS) {
+      const f = FIELDS[k];
+      let v = Number(o[k]); if (!Number.isFinite(v)) v = f.min;
+      v = f.prec ? Number(v.toFixed(f.prec)) : Math.round(v / f.step) * f.step;
+      const max = k === 'contrib' ? limitFor(o.startYear) : f.max;
+      o[k] = Math.min(max, Math.max(f.min, v));
+    }
+    if (o.until <= o.age) o.until = o.age + 1;
+    return o;
+  }
+
+  function simulate(s) {
+    const g = (s.gross - s.fees) / 100;
+    const rows = []; let cum = 0, prev = 0, growthSum = 0;
+    const n = s.until - s.age + 1;
+    const atMax = s.contrib >= limitFor(s.startYear);
+    for (let i = 0; i < n; i++) {
+      const year = s.startYear + i, limit = limitFor(year);
+      const planned = atMax ? limit : Math.min(s.contrib, limit);
+      const deposit = Math.max(0, Math.min(planned, LIMIT.lifetime - cum));
+      cum += deposit;
+      const opening = prev + deposit, growth = opening * g, closing = opening + growth;
+      rows.push({ i, age: s.age + i, year, limit, planned, deposit, cum, opening, growth, closing });
+      growthSum += growth; prev = closing;
+    }
+    const final = prev;
+    const r = { rows, n, final, contributed: cum, growth: growthSum, atMax };
+    r.outpace = rows.findIndex(x => x.planned > 0 && x.growth > x.planned);
+    r.limit = rows.findIndex(x => x.cum >= LIMIT.lifetime);
+    r.half = final > 0 ? rows.findIndex(x => x.closing >= final / 2) : -1;
+    if (r.half <= 0 || r.half >= n - 1) r.half = -1;
+    return r;
+  }
+  function simulateTaxable(s) {
+    const g = (s.gross - s.fees) / 100;
+    const rows = []; let cum = 0, prev = 0;
+    const n = s.until - s.age + 1;
+    const atMax = s.contrib >= limitFor(s.startYear);
+    for (let i = 0; i < n; i++) {
+      const limit = limitFor(s.startYear + i);
+      const deposit = Math.max(0, Math.min(atMax ? limit : Math.min(s.contrib, limit), LIMIT.lifetime - cum)); cum += deposit;
+      const opening = prev + deposit;
+      const closing = opening + opening * g - opening * TAXABLE.divYield * TAXABLE.divTax;
+      rows.push({ age: s.age + i, closing }); prev = closing;
+    }
+    const final = prev - Math.max(0, prev - cum) * TAXABLE.cgt;
+    return { rows, final, preCgt: prev };
+  }
+
+  function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+
+  function scenarioSeries(sc) {
+    if (sc.taxable) { const t = simulateTaxable(S); return { rows: t.rows, final: t.final, note: 'after capital gains tax' }; }
+    const s2 = clampState(sc.make(S));
+    if (s2.until <= s2.age + 0) return null;
+    const r = simulate(s2);
+    return { rows: r.rows.map(x => ({ age: x.age, closing: x.closing })), final: r.final };
+  }
+
+  function render() {
+    base = simulate(S);
+    const tax = simulateTaxable(S);
+    for (const el of document.querySelectorAll('.num')) {
+      const k = el.dataset.key; if (el.querySelector('input')) continue;
+      el.textContent = FIELDS[k].fmt(S[k]); el.setAttribute('aria-valuenow', S[k]); el.setAttribute('aria-valuetext', FIELDS[k].fmt(S[k]));
+    }
+    const last = base.rows[base.n - 1];
+    const rises = base.atMax && limitFor(S.startYear) < 46000;
+    $('hint').innerHTML = 'Drag a number to change it, or click to type &middot; SARS limit for ' + S.startYear + ': ' + fmtR(limitFor(S.startYear)) + ' a year &middot; R500' + NB + '000 lifetime' + (rises ? ' &middot; you&rsquo;re at the limit, so each year&rsquo;s deposit follows it up to R46' + NB + '000 in 2026' : '');
+    $('heroCap').textContent = 'At ' + last.age + ' · ' + last.year;
+    $('heroValue').textContent = fmtShort(base.final);
+    $('rPutIn').textContent = fmtR(base.contributed);
+    $('rGrowth').textContent = fmtBig(base.growth);
+    const mult = base.contributed > 0 ? base.final / base.contributed : 0;
+    $('rMultiple').textContent = base.contributed > 0 ? (mult >= 1000 ? fmtR(mult) : 'R' + mult.toFixed(2)) : '—';
+    $('rTax').textContent = fmtBig(base.final - tax.final);
+    renderTiles(tax);
+    renderChart();
+    renderTable();
+    renderWhatIf();
+    const h = '#a=' + S.age + '&y=' + S.startYear + '&c=' + S.contrib + '&g=' + S.gross + '&f=' + S.fees + '&u=' + S.until;
+    try { history.replaceState(null, '', h); } catch (e) {}
+  }
+
+  function renderTiles(tax) {
+    const yrs = S.until - S.age;
+    if (yrs > 1) {
+      const a1 = simulate(clampState({ ...S, age: S.age + 1, startYear: S.startYear + 1 }));
+      $('tWait').textContent = fmtBig(-(base.final - a1.final));
+      if (yrs > 5) { const a5 = simulate(clampState({ ...S, age: S.age + 5, startYear: S.startYear + 5 })); $('tWaitT').textContent = 'Start at ' + (S.age + 5) + ' and it costs ' + fmtBig(base.final - a5.final) + '.'; }
+      else $('tWaitT').textContent = 'That’s starting at ' + (S.age + 1) + ' instead of ' + S.age + '.';
+    } else { $('tWait').textContent = '—'; $('tWaitT').textContent = 'Give the plan a few more years to see this.'; }
+    const f1 = simulate(clampState({ ...S, fees: S.fees + 1 })), f2 = simulate(clampState({ ...S, fees: S.fees + 2 }));
+    $('tFees').textContent = fmtBig(-(base.final - f1.final));
+    $('tFeesT').textContent = 'That’s fees of ' + pct(S.fees + 1) + ' instead of ' + pct(S.fees) + '. At ' + pct(S.fees + 2) + ' it’s ' + fmtBig(base.final - f2.final) + '.';
+    $('tWrap').textContent = fmtBig(base.final - tax.final, true);
+    $('tWrapT').textContent = 'The same money in an ordinary investment account ends near ' + fmtShort(tax.final) + ' once dividends tax and capital gains tax are paid.';
+  }
+
+
+  function renderChart() {
+    const chart = $('chart'); if (chart.hidden) return;
+    const W = chart.clientWidth, H = $('svg').clientHeight || 300, n = base.n;
+    if (!W) return;
+    lastW = W;
+    const extras = view === 'whatif' ? SCENARIOS.filter(sc => active.has(sc.id)).map(sc => ({ sc, s: scenarioSeries(sc) })).filter(x => x.s) : [];
+    let raw = Math.max(1, ...base.rows.map(r => r.closing), ...extras.flatMap(x => x.s.rows.map(r => r.closing)));
+    const step = niceStep(raw / 5), yMax = Math.ceil(raw / step) * step;
+    const x = i => n > 1 ? i / (n - 1) * W : 0, y = v => H - v / yMax * H;
+    const xa = age => x(age - S.age);
+    const pts = base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.closing).toFixed(1));
+    let svg = '';
+    for (let v = step; v <= yMax + 1e-6; v += step) svg += '<line x1="0" x2="' + W + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#1f262d" stroke-width="1"></line>';
+    svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#1f262d" stroke-width="1"></line>';
+    svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6b8" stop-opacity="0.28"></stop><stop offset="1" stop-color="#6fd6b8" stop-opacity="0"></stop></linearGradient></defs>';
+    svg += '<path d="M' + pts.join(' L') + ' L' + W + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
+    svg += '<path d="M' + base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.cum).toFixed(1)).join(' L') + '" fill="none" stroke="#3a444d" stroke-width="1.5" stroke-dasharray="2 5"></path>';
+    for (const e of extras) {
+      const p = e.s.rows.map(r => xa(r.age).toFixed(1) + ',' + y(r.closing).toFixed(1));
+      svg += '<path d="M' + p.join(' L') + '" fill="none" stroke="#7b858e" stroke-width="1.5" stroke-dasharray="' + e.sc.dash + '"></path>';
+    }
+    svg += '<path d="M' + pts.join(' L') + '" fill="none" stroke="#6fd6b8" stroke-width="2.5" stroke-linejoin="round"></path>';
+    for (const i of [base.outpace, base.limit, base.half]) if (i >= 0) svg += '<line x1="' + x(i).toFixed(1) + '" x2="' + x(i).toFixed(1) + '" y1="' + y(base.rows[i].closing).toFixed(1) + '" y2="' + H + '" stroke="#7b858e" stroke-width="1"></line>';
+    svg += '<line id="scrubLine" x1="0" x2="0" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1" stroke-dasharray="4 4"></line>';
+    $('svg').innerHTML = svg;
+
+    let ov = '';
+    for (let v = step; v <= yMax + 1e-6; v += step) ov += '<div class="ylab" style="top:' + (y(v) - 14).toFixed(1) + 'px">' + fmtTick(v) + '</div>';
+    for (const e of extras) { const lastRow = e.s.rows[e.s.rows.length - 1]; ov += '<div class="endlab" style="left:' + W + 'px; top:' + y(lastRow.closing).toFixed(1) + 'px">' + e.sc.label + ' · ' + fmtShort(e.s.final) + '</div>'; }
+    $('overlay').innerHTML = ov;
+
+    const marks = [];
+    if (base.outpace >= 0) marks.push({ i: base.outpace, t: base.rows[base.outpace].age + ' · growth outpaces deposits' });
+    if (base.limit >= 0) marks.push({ i: base.limit, t: base.rows[base.limit].age + ' · lifetime limit reached' });
+    if (base.half >= 0) marks.push({ i: base.half, t: base.rows[base.half].age + ' · halfway to ' + fmtShort(base.final) });
+    marks.sort((a, b) => a.i - b.i);
+    const CH = 6.7, placed = [{ s: 0, e: String(S.age).length * CH, row: 0 }, { s: W - String(S.until).length * CH, e: W, row: 0 }];
+    let ax = '<span class="edge" style="left:0">' + S.age + '</span><span class="edge" style="right:0">' + S.until + '</span>';
+    for (const m of marks) {
+      const px = x(m.i), w = m.t.length * CH + 6;
+      let side = px + w <= W ? 'l' : 'r';
+      if (side === 'r' && px - w < 0) side = 'l';
+      const s = side === 'l' ? px : px - w, e = s + w;
+      let row = 0;
+      while (placed.some(p => p.row === row && s < p.e + 8 && e > p.s - 8)) row++;
+      placed.push({ s, e, row });
+      ax += '<span class="' + side + '" style="left:' + px.toFixed(1) + 'px; top:' + (row * 15) + 'px">' + m.t + '</span>';
+    }
+    $('axis').innerHTML = ax;
+
+    if (scrub < 0 || scrub >= n) scrub = Math.round((n - 1) / 2);
+    placeScrub(W, H, x, y);
+  }
+
+  function placeScrub(W, H, x, y) {
+    const r = base.rows[scrub], px = x(r.i), py = y(r.closing);
+    const line = $('scrubLine'); if (line) { line.setAttribute('x1', px.toFixed(1)); line.setAttribute('x2', px.toFixed(1)); }
+    const dot = $('dot'); dot.style.left = px + 'px'; dot.style.top = py + 'px';
+    const tip = $('tip');
+    const since = base.limit >= 0 && r.i > base.limit ? r.i - base.limit : 0;
+    const dep = r.deposit > 0 ? fmtR(r.deposit) + ' deposited' : since > 0 ? 'deposits stopped ' + since + ' yr' + (since > 1 ? 's' : '') + ' ago' : 'no deposit';
+    let note = '';
+    if (r.i === base.outpace) note += '<div class="note"><strong>Growth outpaces deposits.</strong> The account earned ' + fmtBig(r.growth) + ' this year, more than the ' + fmtR(r.planned) + ' you put in. From here it adds more to itself each year than you do.</div>';
+    if (r.i === base.limit) {
+      const left = base.n - 1 - r.i;
+      note += '<div class="note"><strong>Lifetime limit reached.</strong> This ' + fmtR(r.deposit) + ' deposit brings the total to R500' + NB + '000, the most SARS allows into a tax-free account. Nothing more can go in' + (left > 0 ? ', so the next ' + left + (left === 1 ? ' year is' : ' years are') + ' growth alone.' : '.') + '</div>';
+    }
+    if (r.i === base.half) {
+      const left = base.n - 1 - r.i;
+      note += '<div class="note"><strong>Halfway there.</strong> The balance has just passed half of the ' + fmtShort(base.final) + ' you end with. It took ' + (r.i + 1) + ' years to get here. The last ' + left + (left === 1 ? ' year adds' : ' years add') + ' as much again, because there’s so much more money earning now.</div>';
+    }
+    tip.innerHTML = '<div class="cap">' + r.year + ' · age ' + r.age + '</div><div class="v">' + fmtBig(r.closing) + '</div><div class="s">' + fmtBig(r.growth, true) + ' this year · ' + dep + '</div>' + note;
+    const tw = tip.offsetWidth || 200;
+    const left = px + 14 + tw > W ? px - 14 - tw : px + 14;
+    tip.style.left = Math.max(0, left) + 'px';
+    const th = tip.offsetHeight || 96;
+    tip.style.top = Math.min(H - th, Math.max(6, py - 90)) + 'px';
+  }
+
+  function renderTable() {
+    if ($('table').hidden) return;
+    let h = '';
+    base.rows.forEach(r => {
+      const notes = [];
+      if (r.i === base.outpace) notes.push('growth outpaces deposits');
+      if (r.i === base.limit) notes.push('lifetime limit reached');
+      if (r.i === base.half) notes.push('halfway');
+      if (base.atMax && r.i > 0 && r.deposit > 0 && r.limit > base.rows[r.i - 1].limit) notes.push('limit rises to ' + fmtR(r.limit));
+      h += '<tr' + (notes.length ? ' class="mark"' : '') + '><td>' + r.age + '</td><td>' + r.year + '</td><td>' + fmtR(r.deposit) + '</td><td>' + fmtR(r.cum) + '</td><td>' + fmtR(r.opening) + '</td><td>' + fmtR(r.growth) + '</td><td>' + fmtR(r.closing) + '</td><td class="note">' + notes.join(', ') + '</td></tr>';
+    });
+    $('tbody').innerHTML = h;
+  }
+
+  function renderWhatIf() {
+    if ($('whatif').hidden) return;
+    let c = '';
+    for (const sc of SCENARIOS) c += '<button type="button" class="chip" data-id="' + sc.id + '" aria-pressed="' + active.has(sc.id) + '">' + sc.label + '</button>';
+    $('chips').innerHTML = c;
+    let l = '<div class="row plan"><span>Your plan</span><span class="mono">' + fmtBig(base.final) + '</span><span class="delta mono">at ' + S.until + '</span></div>';
+    let any = false;
+    for (const sc of SCENARIOS) {
+      if (!active.has(sc.id)) continue;
+      const s = scenarioSeries(sc); if (!s) continue; any = true;
+      l += '<div class="row"><span>' + sc.label + (s.note ? ' <span class="empty">(' + s.note + ')</span>' : '') + '</span><span class="mono">' + fmtBig(s.final) + '</span><span class="delta mono">' + fmtBig(s.final - base.final, true) + '</span></div>';
+    }
+    $('scenList').innerHTML = l + (any ? '' : '<div class="row"><span class="empty">Pick a scenario above to draw it on the chart.</span></div>');
+  }
+
+  function setView(v) {
+    view = v;
+    for (const b of document.querySelectorAll('.seg button')) b.setAttribute('aria-pressed', String(b.dataset.view === v));
+    $('chart').hidden = v === 'table';
+    $('tiles').hidden = v !== 'plan';
+    $('whatif').hidden = v !== 'whatif';
+    $('table').hidden = v !== 'table';
+    render();
+  }
+
+  function setValue(k, v) {
+    const o = { ...S, [k]: v };
+    if (k === 'age' && o.until <= o.age) o.until = o.age + 1;
+    if (k === 'startYear' && S.contrib >= limitFor(S.startYear)) o.contrib = limitFor(Math.min(FIELDS.startYear.max, Math.max(FIELDS.startYear.min, Math.round(v))));
+    S = clampState(o); scrub = -1; render();
+  }
+
+  let drag = null;
+  document.querySelectorAll('.num').forEach(el => {
+    const k = el.dataset.key, f = FIELDS[k];
+    el.addEventListener('pointerdown', e => {
+      if (el.querySelector('input')) return;
+      drag = { el, k, x: e.clientX, v: S[k], moved: false };
+      el.setPointerCapture(e.pointerId); el.classList.add('dragging');
+    });
+    el.addEventListener('pointermove', e => {
+      if (!drag || drag.el !== el) return;
+      const dx = e.clientX - drag.x;
+      if (Math.abs(dx) > 3) drag.moved = true;
+      if (drag.moved) { const v = drag.v + Math.round(dx / f.px) * f.step; if (v !== S[k]) setValue(k, v); }
+    });
+    const end = e => {
+      if (!drag || drag.el !== el) return;
+      const moved = drag.moved; drag = null; el.classList.remove('dragging');
+      if (!moved && e.type === 'pointerup') beginEdit(el, k);
+    };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    el.addEventListener('keydown', e => {
+      if (el.querySelector('input')) return;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); setValue(k, S[k] + f.step * (e.shiftKey ? 10 : 1)); }
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); setValue(k, S[k] - f.step * (e.shiftKey ? 10 : 1)); }
+      else if (e.key === 'Enter') { e.preventDefault(); beginEdit(el, k); }
+    });
+  });
+  function beginEdit(el, k) {
+    const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.value = String(S[k]); inp.setAttribute('aria-label', el.getAttribute('aria-label'));
+    el.textContent = ''; el.appendChild(inp); inp.focus(); inp.select();
+    let done = false;
+    const commit = ok => { if (done) return; done = true; const v = parseFloat(inp.value.replace(/[^\d.\-]/g, '')); inp.remove(); if (ok && Number.isFinite(v)) setValue(k, v); else render(); el.focus(); };
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); commit(true); } else if (e.key === 'Escape') { e.preventDefault(); commit(false); } });
+    inp.addEventListener('blur', () => commit(true));
+    inp.addEventListener('pointerdown', e => e.stopPropagation());
+  }
+
+  $('chart').addEventListener('pointermove', e => {
+    if ($('chart').hidden || !base) return;
+    const rect = $('chart').getBoundingClientRect(); const W = rect.width;
+    const i = Math.round((e.clientX - rect.left) / W * (base.n - 1));
+    const ni = Math.min(base.n - 1, Math.max(0, i));
+    if (ni !== scrub) { scrub = ni; renderChart(); }
+  });
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+  $('chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const id = b.dataset.id; if (active.has(id)) active.delete(id); else active.add(id); render(); });
+
+  let toastT;
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
+  $('share').addEventListener('click', async () => {
+    const url = location.href;
+    try { await navigator.clipboard.writeText(url); toast('Link copied. It opens with these numbers.'); }
+    catch (e) { toast('Couldn’t copy. The link in the address bar carries these numbers.'); }
+  });
+
+  (function fromHash() {
+    const m = new URLSearchParams(location.hash.slice(1));
+    const map = { a: 'age', y: 'startYear', c: 'contrib', g: 'gross', f: 'fees', u: 'until' };
+    const o = { ...S }; let any = false;
+    for (const k in map) { const v = parseFloat(m.get(k)); if (Number.isFinite(v)) { o[map[k]] = v; any = true; } }
+    if (any) S = clampState(o);
+  })();
+
+  let rt, lastW = -1;
+  function chartResized() { const w = $('chart').clientWidth; if (w === lastW || !base) return; lastW = w; clearTimeout(rt); rt = setTimeout(renderChart, 30); }
+  window.addEventListener('resize', chartResized);
+  if (window.ResizeObserver) new ResizeObserver(chartResized).observe($('chart'));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderChart);
+  render();
+})();
+</script>

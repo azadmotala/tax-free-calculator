@@ -1,0 +1,4 @@
+# Only the page is published. Working files stay local.
+*.xlsx
+~$*
+design/
