@@ -82,6 +82,9 @@
   .axis span.edge { color: var(--muted); }
   .axis span.r { transform: translateX(-100%); padding-right: 6px; }
   .axis span.l { padding-left: 6px; }
+  .axis span.c { transform: translateX(-50%); padding: 0 3px; }
+  .touch-only { display: none; }
+  @media (pointer: coarse) { .touch-only { display: inline; } .mouse-only { display: none; } }
   .endlab { color: var(--muted); transform: translate(-100%, -100%); padding: 0 0 4px; pointer-events: none; }
 
   .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
@@ -142,6 +145,8 @@
     .share { height: 36px; padding: 0 14px; font-size: 13px; }
     .seg { order: 3; width: 100%; justify-content: stretch; }
     .seg button { flex: 1; font-size: 13px; padding: 0 8px; min-height: 38px; white-space: nowrap; }
+    .num[data-key] { min-width: 0; }
+    .chart { margin-top: 30px; }
     .tiles { grid-template-columns: minmax(0, 1fr); }
     .chart { height: 284px; } .chart svg { height: 240px; } .axis { top: 246px; }
     .list .row { grid-template-columns: minmax(0, 1fr) auto; } .list .row .delta { grid-column: 2; }
@@ -226,7 +231,7 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div class="cap tablehint">Click a year, or use the arrow keys, to park on it. The chart&rsquo;s scrubber stays on the same year.</div>
+      <div class="cap tablehint"><span class="mouse-only">Click a year, or use the arrow keys, to park on it.</span><span class="touch-only">Tap a year to park on it.</span> The chart&rsquo;s scrubber stays on the same year.</div>
     </section>
 
     <details class="cap foot"><summary>How it calculates</summary><p>Each deposit goes in at the start of the year and grows once a year at your return minus fees. Withdrawals start the year after you stop adding, each one a fixed share of that year's opening balance, taken before growth. The ordinary-account comparison assumes a 3% dividend yield taxed at 20%, and 18% capital gains tax when you cash out. SARS annual limits follow the year of each deposit: R30&nbsp;000 from March 2015, R33&nbsp;000 from March 2017, R36&nbsp;000 from March 2020 and R46&nbsp;000 from March 2026, with a R500&nbsp;000 lifetime limit and 40% tax on anything over.</p></details>
@@ -328,7 +333,7 @@
       $('rDrawn').textContent = 'R0';
     }
     const rises = base.atMax && limitFor(S.startYear) < 46000;
-    $('hint').innerHTML = 'Drag a number to change it, or click to type &middot; SARS limit for ' + S.startYear + ': ' + fmtR(limitFor(S.startYear)) + ' a year &middot; R500' + NB + '000 lifetime' + (rises ? ' &middot; you&rsquo;re at the limit, so each year&rsquo;s deposit follows it up to R46' + NB + '000 in 2026' : '');
+    $('hint').innerHTML = '<span class="mouse-only">Drag a number to change it, or click to type</span><span class="touch-only">Drag a number, or tap it to type. Tap or drag the chart to pick a year</span> &middot; SARS limit for ' + S.startYear + ': ' + fmtR(limitFor(S.startYear)) + ' a year &middot; R500' + NB + '000 lifetime' + (rises ? ' &middot; you&rsquo;re at the limit, so each year&rsquo;s deposit follows it up to R46' + NB + '000 in 2026' : '');
     $('heroCap').textContent = 'At ' + last.age + ' · ' + last.year;
     $('heroValue').textContent = fmtShort(base.final);
     $('rPutIn').textContent = fmtR(base.contributed);
@@ -414,13 +419,16 @@
     if (base.half >= 0) marks.push({ i: base.half, t: base.rows[base.half].age + ' · halfway to ' + fmtShort(base.final) });
     if (base.draw >= 0) marks.push({ i: base.draw, t: base.rows[base.draw].age + ' · you start drawing' });
     marks.sort((a, b) => a.i - b.i);
+    // On a narrow chart the explanations don't fit under their ticks, so show only the age there.
+    // The scrubber card explains each milestone when you park on it.
+    if (W < 600) for (const m of marks) { m.t = String(base.rows[m.i].age); m.c = true; }
     const CH = 6.7, placed = [{ s: 0, e: String(S.age).length * CH, row: 0 }, { s: W - String(S.end).length * CH, e: W, row: 0 }];
     let ax = '<span class="edge" style="left:0">' + S.age + '</span><span class="edge" style="right:0">' + S.end + '</span>';
     for (const m of marks) {
       const px = x(m.i), w = m.t.length * CH + 6;
-      let side = px + w <= W ? 'l' : 'r';
+      let side = m.c ? 'c' : (px + w <= W ? 'l' : 'r');
       if (side === 'r' && px - w < 0) side = 'l';
-      const s = side === 'l' ? px : px - w, e = s + w;
+      const s = side === 'l' ? px : side === 'r' ? px - w : px - w / 2, e = s + w;
       let row = 0;
       while (placed.some(p => p.row === row && s < p.e + 8 && e > p.s - 8)) row++;
       placed.push({ s, e, row });
