@@ -38,7 +38,10 @@
   .num[data-key="age"], .num[data-key="until"] { min-width: 3ch; }
   .num[data-key="startYear"] { min-width: 4.4ch; }
   .num[data-key="contrib"] { min-width: 8.2ch; }
-  .num[data-key="gross"], .num[data-key="fees"] { min-width: 7.6ch; }
+  .num[data-key="gross"], .num[data-key="fees"], .num[data-key="rate"] { min-width: 7.6ch; }
+  .num[data-key="end"] { min-width: 3ch; }
+  .sentence.second { margin-top: 10px; font-size: clamp(19px, 1.7vw, 24px); }
+  .sentence .summary { color: var(--muted); }
   .num:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
   .num.dragging { background: var(--accent-fade); }
   .num input { font: inherit; color: var(--accent); background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 0 4px; width: 100%; min-width: 5ch; outline: none; text-align: center; }
@@ -128,6 +131,7 @@
 
   <main class="wrap">
     <p class="sentence" id="sentence">I&rsquo;m <span class="num" data-key="age" tabindex="0" role="spinbutton" aria-label="Your age now"></span>. From <span class="num" data-key="startYear" tabindex="0" role="spinbutton" aria-label="Start year"></span> I&rsquo;ll add <span class="num" data-key="contrib" tabindex="0" role="spinbutton" aria-label="Deposit each year"></span> a year, earning <span class="num" data-key="gross" tabindex="0" role="spinbutton" aria-label="Return before fees"></span> before <span class="num" data-key="fees" tabindex="0" role="spinbutton" aria-label="Fees"></span> in fees, and I&rsquo;ll leave it until I&rsquo;m <span class="num" data-key="until" tabindex="0" role="spinbutton" aria-label="Age you stop"></span>.</p>
+    <p class="sentence second" id="sentence2">After that I&rsquo;ll draw <span class="num" data-key="rate" tabindex="0" role="spinbutton" aria-label="Yearly withdrawal as a share of the balance"></span> a year until I&rsquo;m <span class="num" data-key="end" tabindex="0" role="spinbutton" aria-label="Age the plan runs to"></span>. <span class="summary" id="drawSummary"></span></p>
     <div class="cap hint" id="hint"></div>
 
     <section class="hero" aria-live="polite">
@@ -165,7 +169,7 @@
     <section id="table" hidden>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Age</th><th>Year</th><th>Deposit</th><th>Total deposited</th><th>Opening</th><th>Growth</th><th>Closing</th><th></th></tr></thead>
+          <thead><tr><th>Age</th><th>Year</th><th>Deposit</th><th>Total deposited</th><th>Opening</th><th>Withdrawn</th><th>Growth</th><th>Closing</th><th></th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
@@ -188,7 +192,9 @@
     contrib:   { min: 0,    max: 46000,  step: 500,  px: 3,  fmt: v => fmtR(v) },
     gross:     { min: 0,    max: 20,     step: 0.05, px: 6,  prec: 2, fmt: v => fmtPct(v) },
     fees:      { min: 0,    max: 5,      step: 0.01, px: 4,  prec: 2, fmt: v => fmtPct(v) },
-    until:     { min: 2,    max: 100,    step: 1,    px: 10, fmt: v => String(v) }
+    until:     { min: 2,    max: 100,    step: 1,    px: 10, fmt: v => String(v) },
+    rate:      { min: 0,    max: 20,     step: 0.25, px: 6,  prec: 2, fmt: v => fmtPct(v) },
+    end:       { min: 3,    max: 110,    step: 1,    px: 10, fmt: v => String(v) }
   };
   const SCENARIOS = [
     { id: 'late1',   label: 'Start one year later',    dash: '6 4',      make: s => ({ ...s, age: s.age + 1, startYear: s.startYear + 1 }) },
@@ -198,7 +204,7 @@
     { id: 'taxable', label: 'Taxable account instead', dash: '4 4 1 4',  taxable: true }
   ];
 
-  let S = { age: 30, startYear: 2026, contrib: 46000, gross: 8.37, fees: 0.37, until: 65 };
+  let S = { age: 30, startYear: 2026, contrib: 46000, gross: 8.37, fees: 0.37, until: 65, rate: 4, end: 90 };
   let view = 'plan';
   let active = new Set();
   let scrub = -1;
@@ -238,29 +244,37 @@
       o[k] = Math.min(max, Math.max(f.min, v));
     }
     if (o.until <= o.age) o.until = o.age + 1;
+    if (o.end <= o.until) o.end = o.until + 1;
+    if (o.end > FIELDS.end.max) { o.end = FIELDS.end.max; o.until = Math.min(o.until, o.end - 1); }
     return o;
   }
 
   function simulate(s) {
     const g = (s.gross - s.fees) / 100;
-    const rows = []; let cum = 0, prev = 0, growthSum = 0;
-    const n = s.until - s.age + 1;
+    const rows = []; let cum = 0, prev = 0, growthSum = 0, drawn = 0;
+    const n = s.end - s.age + 1, untilIdx = s.until - s.age;
     const atMax = s.contrib >= limitFor(s.startYear);
     for (let i = 0; i < n; i++) {
-      const year = s.startYear + i, limit = limitFor(year);
-      const planned = atMax ? limit : Math.min(s.contrib, limit);
+      const year = s.startYear + i, limit = limitFor(year), drawing = i > untilIdx;
+      const planned = drawing ? 0 : (atMax ? limit : Math.min(s.contrib, limit));
       const deposit = Math.max(0, Math.min(planned, LIMIT.lifetime - cum));
       cum += deposit;
-      const opening = prev + deposit, growth = opening * g, closing = opening + growth;
-      rows.push({ i, age: s.age + i, year, limit, planned, deposit, cum, opening, growth, closing });
-      growthSum += growth; prev = closing;
+      const opening = prev + deposit;
+      const withdrawal = drawing ? opening * s.rate / 100 : 0;
+      const growth = (opening - withdrawal) * g, closing = opening - withdrawal + growth;
+      rows.push({ i, age: s.age + i, year, limit, planned, deposit, cum, opening, withdrawal, growth, closing });
+      if (!drawing) growthSum += growth;
+      drawn += withdrawal; prev = closing;
     }
-    const final = prev;
-    const r = { rows, n, final, contributed: cum, growth: growthSum, atMax };
-    r.outpace = rows.findIndex(x => x.planned > 0 && x.growth > x.planned);
+    const final = rows[untilIdx].closing;
+    const r = { rows, n, untilIdx, final, endValue: prev, drawn, contributed: cum, growth: growthSum, atMax };
+    r.firstDraw = untilIdx + 1 < n ? rows[untilIdx + 1].withdrawal : 0;
+    const acc = rows.slice(0, untilIdx + 1);
+    r.outpace = acc.findIndex(x => x.planned > 0 && x.growth > x.planned);
     r.limit = rows.findIndex(x => x.cum >= LIMIT.lifetime);
-    r.half = final > 0 ? rows.findIndex(x => x.closing >= final / 2) : -1;
-    if (r.half <= 0 || r.half >= n - 1) r.half = -1;
+    r.half = final > 0 ? acc.findIndex(x => x.closing >= final / 2) : -1;
+    if (r.half <= 0 || r.half >= untilIdx) r.half = -1;
+    r.draw = s.rate > 0 && untilIdx < n - 1 ? untilIdx : -1;
     return r;
   }
   function simulateTaxable(s) {
@@ -286,7 +300,8 @@
     const s2 = clampState(sc.make(S));
     if (s2.until <= s2.age + 0) return null;
     const r = simulate(s2);
-    return { rows: r.rows.map(x => ({ age: x.age, closing: x.closing })), final: r.final };
+    const at = r.rows.find(x => x.age === S.until) || r.rows[r.rows.length - 1];
+    return { rows: r.rows.map(x => ({ age: x.age, closing: x.closing })), final: at.closing };
   }
 
   function render() {
@@ -296,7 +311,10 @@
       const k = el.dataset.key; if (el.querySelector('input')) continue;
       el.textContent = FIELDS[k].fmt(S[k]); el.setAttribute('aria-valuenow', S[k]); el.setAttribute('aria-valuetext', FIELDS[k].fmt(S[k]));
     }
-    const last = base.rows[base.n - 1];
+    const last = base.rows[base.untilIdx];
+    const drawYears = base.n - 1 - base.untilIdx;
+    if (S.rate > 0) $('drawSummary').textContent = 'That’s ' + fmtBig(base.firstDraw / 12) + ' a month to start, ' + fmtBig(base.drawn) + ' drawn over ' + drawYears + (drawYears === 1 ? ' year' : ' years') + ', and ' + fmtShort(base.endValue) + ' still there at ' + S.end + '.';
+    else $('drawSummary').textContent = 'Nothing comes out, so it keeps growing to ' + fmtShort(base.endValue) + ' at ' + S.end + '.';
     const rises = base.atMax && limitFor(S.startYear) < 46000;
     $('hint').innerHTML = 'Drag a number to change it, or click to type &middot; SARS limit for ' + S.startYear + ': ' + fmtR(limitFor(S.startYear)) + ' a year &middot; R500' + NB + '000 lifetime' + (rises ? ' &middot; you&rsquo;re at the limit, so each year&rsquo;s deposit follows it up to R46' + NB + '000 in 2026' : '');
     $('heroCap').textContent = 'At ' + last.age + ' · ' + last.year;
@@ -310,7 +328,7 @@
     renderChart();
     renderTable();
     renderWhatIf();
-    const h = '#a=' + S.age + '&y=' + S.startYear + '&c=' + S.contrib + '&g=' + S.gross + '&f=' + S.fees + '&u=' + S.until;
+    const h = '#a=' + S.age + '&y=' + S.startYear + '&c=' + S.contrib + '&g=' + S.gross + '&f=' + S.fees + '&u=' + S.until + '&r=' + S.rate + '&e=' + S.end;
     try { history.replaceState(null, '', h); } catch (e) {}
   }
 
@@ -345,6 +363,7 @@
     for (let v = step; v <= yMax + 1e-6; v += step) svg += '<line x1="0" x2="' + W + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#1f262d" stroke-width="1"></line>';
     svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#1f262d" stroke-width="1"></line>';
     svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6b8" stop-opacity="0.28"></stop><stop offset="1" stop-color="#6fd6b8" stop-opacity="0"></stop></linearGradient></defs>';
+    if (base.untilIdx < n - 1) svg += '<rect x="' + x(base.untilIdx).toFixed(1) + '" y="0" width="' + (W - x(base.untilIdx)).toFixed(1) + '" height="' + H + '" fill="#e9ecef" fill-opacity="0.035"></rect>';
     svg += '<path d="M' + pts.join(' L') + ' L' + W + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
     svg += '<path d="M' + base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.cum).toFixed(1)).join(' L') + '" fill="none" stroke="#3a444d" stroke-width="1.5" stroke-dasharray="2 5"></path>';
     for (const e of extras) {
@@ -352,7 +371,7 @@
       svg += '<path d="M' + p.join(' L') + '" fill="none" stroke="#7b858e" stroke-width="1.5" stroke-dasharray="' + e.sc.dash + '"></path>';
     }
     svg += '<path d="M' + pts.join(' L') + '" fill="none" stroke="#6fd6b8" stroke-width="2.5" stroke-linejoin="round"></path>';
-    for (const i of [base.outpace, base.limit, base.half]) if (i >= 0) svg += '<line x1="' + x(i).toFixed(1) + '" x2="' + x(i).toFixed(1) + '" y1="' + y(base.rows[i].closing).toFixed(1) + '" y2="' + H + '" stroke="#7b858e" stroke-width="1"></line>';
+    for (const i of [base.outpace, base.limit, base.half, base.draw]) if (i >= 0) svg += '<line x1="' + x(i).toFixed(1) + '" x2="' + x(i).toFixed(1) + '" y1="' + y(base.rows[i].closing).toFixed(1) + '" y2="' + H + '" stroke="#7b858e" stroke-width="1"></line>';
     svg += '<line id="scrubLine" x1="0" x2="0" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1" stroke-dasharray="4 4"></line>';
     $('svg').innerHTML = svg;
 
@@ -365,9 +384,10 @@
     if (base.outpace >= 0) marks.push({ i: base.outpace, t: base.rows[base.outpace].age + ' · growth outpaces deposits' });
     if (base.limit >= 0) marks.push({ i: base.limit, t: base.rows[base.limit].age + ' · lifetime limit reached' });
     if (base.half >= 0) marks.push({ i: base.half, t: base.rows[base.half].age + ' · halfway to ' + fmtShort(base.final) });
+    if (base.draw >= 0) marks.push({ i: base.draw, t: base.rows[base.draw].age + ' · you start drawing' });
     marks.sort((a, b) => a.i - b.i);
-    const CH = 6.7, placed = [{ s: 0, e: String(S.age).length * CH, row: 0 }, { s: W - String(S.until).length * CH, e: W, row: 0 }];
-    let ax = '<span class="edge" style="left:0">' + S.age + '</span><span class="edge" style="right:0">' + S.until + '</span>';
+    const CH = 6.7, placed = [{ s: 0, e: String(S.age).length * CH, row: 0 }, { s: W - String(S.end).length * CH, e: W, row: 0 }];
+    let ax = '<span class="edge" style="left:0">' + S.age + '</span><span class="edge" style="right:0">' + S.end + '</span>';
     for (const m of marks) {
       const px = x(m.i), w = m.t.length * CH + 6;
       let side = px + w <= W ? 'l' : 'r';
@@ -390,8 +410,13 @@
     const dot = $('dot'); dot.style.left = px + 'px'; dot.style.top = py + 'px';
     const tip = $('tip');
     const since = base.limit >= 0 && r.i > base.limit ? r.i - base.limit : 0;
-    const dep = r.deposit > 0 ? fmtR(r.deposit) + ' deposited' : since > 0 ? 'deposits stopped ' + since + ' yr' + (since > 1 ? 's' : '') + ' ago' : 'no deposit';
+    let dep = r.deposit > 0 ? fmtR(r.deposit) + ' deposited' : since > 0 ? 'deposits stopped ' + since + ' yr' + (since > 1 ? 's' : '') + ' ago' : 'no deposit';
+    if (r.withdrawal > 0) dep = fmtBig(-r.withdrawal) + ' drawn (' + fmtBig(r.withdrawal / 12) + ' a month)';
     let note = '';
+    if (r.i === base.draw) {
+      const next = base.rows[r.i + 1], keeps = (1 - S.rate / 100) * (1 + (S.gross - S.fees) / 100) >= 1;
+      note += '<div class="note"><strong>You start drawing.</strong> From next year you take ' + fmtPct(S.rate) + ' of the balance each year, ' + fmtBig(next.withdrawal / 12) + ' a month to start. ' + (keeps ? 'Growth at ' + fmtPct(S.gross - S.fees) + ' after fees outpaces what you take, so the balance keeps rising.' : 'That is more than the ' + fmtPct(S.gross - S.fees) + ' it earns after fees, so the balance shrinks each year.') + '</div>';
+    }
     if (r.i === base.outpace) note += '<div class="note"><strong>Growth outpaces deposits.</strong> The account earned ' + fmtBig(r.growth) + ' this year, more than the ' + fmtR(r.planned) + ' you put in. From here it adds more to itself each year than you do.</div>';
     if (r.i === base.limit) {
       const left = base.n - 1 - r.i;
@@ -417,8 +442,9 @@
       if (r.i === base.outpace) notes.push('growth outpaces deposits');
       if (r.i === base.limit) notes.push('lifetime limit reached');
       if (r.i === base.half) notes.push('halfway');
+      if (r.i === base.draw + 1 && base.draw >= 0) notes.push('withdrawals begin');
       if (base.atMax && r.i > 0 && r.deposit > 0 && r.limit > base.rows[r.i - 1].limit) notes.push('limit rises to ' + fmtR(r.limit));
-      h += '<tr' + (notes.length ? ' class="mark"' : '') + '><td>' + r.age + '</td><td>' + r.year + '</td><td>' + fmtR(r.deposit) + '</td><td>' + fmtR(r.cum) + '</td><td>' + fmtR(r.opening) + '</td><td>' + fmtR(r.growth) + '</td><td>' + fmtR(r.closing) + '</td><td class="note">' + notes.join(', ') + '</td></tr>';
+      h += '<tr' + (notes.length ? ' class="mark"' : '') + '><td>' + r.age + '</td><td>' + r.year + '</td><td>' + fmtR(r.deposit) + '</td><td>' + fmtR(r.cum) + '</td><td>' + fmtR(r.opening) + '</td><td>' + (r.withdrawal > 0 ? fmtR(r.withdrawal) : '—') + '</td><td>' + fmtR(r.growth) + '</td><td>' + fmtR(r.closing) + '</td><td class="note">' + notes.join(', ') + '</td></tr>';
     });
     $('tbody').innerHTML = h;
   }
@@ -512,7 +538,7 @@
 
   (function fromHash() {
     const m = new URLSearchParams(location.hash.slice(1));
-    const map = { a: 'age', y: 'startYear', c: 'contrib', g: 'gross', f: 'fees', u: 'until' };
+    const map = { a: 'age', y: 'startYear', c: 'contrib', g: 'gross', f: 'fees', u: 'until', r: 'rate', e: 'end' };
     const o = { ...S }; let any = false;
     for (const k in map) { const v = parseFloat(m.get(k)); if (Number.isFinite(v)) { o[map[k]] = v; any = true; } }
     if (any) S = clampState(o);
