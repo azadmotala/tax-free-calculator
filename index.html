@@ -24,7 +24,7 @@
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   button { font: inherit; color: inherit; }
-  .page { max-width: 1440px; margin: 0 auto; }
+  .page { max-width: 1440px; margin: 0 auto; overflow-x: clip; }
 
   .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 64px; padding: 10px clamp(16px, 4.4vw, 64px); border-bottom: 1px solid var(--line); }
   .brand { font-family: var(--disp); font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
@@ -61,7 +61,7 @@
   .readout .mono { font-size: 20px; }
   .readout.accent .mono { color: var(--accent); }
 
-  .chart { position: relative; margin-top: 14px; height: 304px; }
+  .chart { position: relative; margin-top: 14px; height: 304px; touch-action: pan-y; }
   .chart svg { display: block; width: 100%; height: 260px; overflow: visible; }
   .ylab { position: absolute; left: 0; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; }
   .tip { position: absolute; display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); min-width: 190px; pointer-events: none; }
@@ -72,6 +72,10 @@
   .tip .s { font-family: var(--mono); font-size: 11px; color: var(--muted); }
   .tip .note { max-width: 380px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-2); font-size: 12px; line-height: 1.45; color: var(--text); }
   .tip .note strong { color: var(--accent); font-weight: 500; }
+  .tipdock { margin-top: 4px; min-height: 124px; }
+  .tipdock:empty { display: none; }
+  .tipdock .tip { position: static; min-width: 0; }
+  .tipdock .tip .note { max-width: none; }
   .dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 6px; background: var(--bg); border: 2px solid var(--text); pointer-events: none; }
   .axis { position: absolute; left: 0; right: 0; top: 266px; height: 38px; }
   .axis span, .endlab { position: absolute; font-family: var(--mono); font-size: 11px; white-space: nowrap; color: var(--text); }
@@ -133,9 +137,11 @@
     .hero-block.draw { padding-left: 0; border-left: 0; padding-top: 24px; border-top: 1px solid var(--line); }
   }
   @media (max-width: 640px) {
-    .top { padding-top: 10px; padding-bottom: 10px; }
+    .top { padding-top: 10px; padding-bottom: 10px; row-gap: 10px; }
+    .brand { font-size: 17px; }
+    .share { height: 36px; padding: 0 14px; font-size: 13px; }
     .seg { order: 3; width: 100%; justify-content: stretch; }
-    .seg button { flex: 1; }
+    .seg button { flex: 1; font-size: 13px; padding: 0 8px; min-height: 38px; white-space: nowrap; }
     .tiles { grid-template-columns: minmax(0, 1fr); }
     .chart { height: 284px; } .chart svg { height: 240px; } .axis { top: 246px; }
     .list .row { grid-template-columns: minmax(0, 1fr) auto; } .list .row .delta { grid-column: 2; }
@@ -200,6 +206,7 @@
       <div class="tip" id="tip"></div>
       <div class="axis" id="axis"></div>
     </section>
+    <div class="tipdock" id="tipdock" aria-live="polite"></div>
 
     <section class="tiles" id="tiles">
       <div class="tile"><div class="cap">The cost of waiting one year</div><div><div class="n" id="tWait"></div><div class="t" id="tWaitT"></div></div></div>
@@ -392,10 +399,14 @@
 
     let ov = '';
     for (let v = step; v <= yMax + 1e-6; v += step) ov += '<div class="ylab" style="top:' + (y(v) - 14).toFixed(1) + 'px">' + fmtTick(v) + '</div>';
-    ov += '<div class="phase" style="left:' + (x(u) * 0.5).toFixed(1) + 'px; transform: translateX(-50%)">Saving · ' + S.age + ' to ' + S.until + '</div>';
-    if (u < n - 1) ov += '<div class="phase" style="left:' + ((x(u) + W) / 2).toFixed(1) + 'px; transform: translateX(-50%)">' + (drawing ? 'Drawing ' + fmtPct(S.rate) + ' a year' : 'Left to grow') + ' · ' + (S.until + 1) + ' to ' + S.end + '</div>';
+    ov += '<div class="phase" data-c="' + (x(u) * 0.5).toFixed(1) + '" data-short="Saving" data-long="Saving · ' + S.age + ' to ' + S.until + '"></div>';
+    if (u < n - 1) {
+      const lbl = drawing ? 'Drawing ' + fmtPct(S.rate) : 'Left to grow';
+      ov += '<div class="phase" data-c="' + ((x(u) + W) / 2).toFixed(1) + '" data-short="' + lbl + '" data-long="' + (drawing ? lbl + ' a year' : lbl) + ' · ' + (S.until + 1) + ' to ' + S.end + '"></div>';
+    }
     for (const e of extras) { const lastRow = e.s.rows[e.s.rows.length - 1]; ov += '<div class="endlab" style="left:' + W + 'px; top:' + y(lastRow.closing).toFixed(1) + 'px">' + e.sc.label + ' · ' + fmtShort(e.s.final) + '</div>'; }
     $('overlay').innerHTML = ov;
+    fitPhases(W);
 
     const marks = [];
     if (base.outpace >= 0) marks.push({ i: base.outpace, t: base.rows[base.outpace].age + ' · growth outpaces deposits' });
@@ -416,6 +427,8 @@
       ax += '<span class="' + side + '" style="left:' + px.toFixed(1) + 'px; top:' + (row * 15) + 'px">' + m.t + '</span>';
     }
     $('axis').innerHTML = ax;
+    const rowsUsed = Math.max(1, ...placed.map(p => p.row + 1));
+    chart.style.height = (H + 6 + rowsUsed * 15 + 8) + 'px';
 
     if (scrub < 0 || scrub >= n) scrub = Math.round((n - 1) / 2);
     placeScrub(W, H, x, y);
@@ -447,11 +460,36 @@
     tip.innerHTML = '<div class="cap">' + r.year + ' · age ' + r.age + '</div><div class="v">' + fmtBig(r.closing) + '</div>' + (note
       ? '<div class="s">' + fmtBig(r.growth, true) + ' growth · ' + dep + '</div>'
       : '<div class="s">' + fmtBig(r.growth, true) + ' growth this year</div><div class="s">' + dep + '</div>') + note;
+    // A narrow chart has no room beside the scrubber, so the card docks underneath the chart instead.
+    const dock = $('tipdock');
+    if (W < 600) {
+      if (tip.parentNode !== dock) dock.appendChild(tip);
+      tip.style.left = ''; tip.style.top = '';
+      return;
+    }
+    if (tip.parentNode !== $('chart')) $('chart').insertBefore(tip, $('axis'));
     tip.style.left = '0px'; tip.style.top = '0px';
     const tw = tip.offsetWidth || 200, th = tip.offsetHeight || 96;
     const pos = placeCard(px, py, tw, th, W, H);
     tip.style.left = pos.l + 'px';
     tip.style.top = pos.t + 'px';
+  }
+
+  // Keeps the Saving and Drawing labels inside the chart. If they would collide, drop the age
+  // ranges; if they still collide, keep only the drawing label.
+  function fitPhases(W) {
+    const ps = [...$('overlay').querySelectorAll('.phase')];
+    const place = mode => {
+      for (const p of ps) {
+        p.hidden = false; p.textContent = p.dataset[mode];
+        const w = p.offsetWidth;
+        p.style.left = Math.max(0, Math.min(W - w, Number(p.dataset.c) - w / 2)) + 'px';
+      }
+    };
+    const clash = () => ps.length > 1 && ps[0].offsetLeft + ps[0].offsetWidth + 12 > ps[1].offsetLeft;
+    place('long'); if (!clash()) return;
+    place('short'); if (!clash()) return;
+    ps[0].hidden = true;
   }
 
   // Picks where the scrubber card goes: either side of the scrubber, above or below the dot, or
@@ -553,6 +591,7 @@
     $('tiles').hidden = v !== 'plan';
     $('whatif').hidden = v !== 'whatif';
     $('table').hidden = v !== 'table';
+    $('tipdock').hidden = v === 'table';
     render();
     if (v === 'table') { const tr = $('tbody').children[scrub]; if (tr) revealRow(tr, true); }
   }
@@ -605,13 +644,16 @@
     inp.addEventListener('pointerdown', e => e.stopPropagation());
   }
 
-  $('chart').addEventListener('pointermove', e => {
+  function scrubAt(e) {
     if ($('chart').hidden || !base) return;
     const rect = $('chart').getBoundingClientRect(); const W = rect.width;
     const i = Math.round((e.clientX - rect.left) / W * (base.n - 1));
     const ni = Math.min(base.n - 1, Math.max(0, i));
     if (ni !== scrub) { scrub = ni; renderChart(); }
-  });
+  }
+  // Mouse hover scrubs; on touch, a tap or a sideways drag scrubs and a vertical swipe still scrolls the page.
+  $('chart').addEventListener('pointermove', scrubAt);
+  $('chart').addEventListener('pointerdown', scrubAt);
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
   $('tbody').addEventListener('click', e => { const tr = e.target.closest('tr[data-i]'); if (tr) { selectRow(Number(tr.dataset.i), false); $('tablewrap').focus({ preventScroll: true }); } });
   $('tablewrap').addEventListener('keydown', e => {
