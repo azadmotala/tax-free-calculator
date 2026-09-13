@@ -17,6 +17,16 @@ A calculator for South African tax-free savings accounts. Your plan is a sentenc
 - SARS annual limits follow the year of each deposit: R30 000 from March 2015, R33 000 from March 2017, R36 000 from March 2020 and R46 000 from March 2026, with a R500 000 lifetime limit. A plan at the limit follows it as it rises.
 - The ordinary-account comparison assumes a 3% dividend yield taxed at 20% and 18% capital gains tax when you cash out.
 
+## Tests
+
+The SARS rules are written up as tests in `test/sars-rules.test.js`, each one quoting the rule it checks from the [SARS Tax Free Investments page](https://www.sars.gov.za/types-of-tax/personal-income-tax/tax-free-investments/) or the [Budget 2026 FAQ](https://www.sars.gov.za/about/sars-tax-and-customs-system/budget/budget-2026-frequently-asked-questions/). They run against `model.js`, the same file the page uses, with no dependencies:
+
+```bash
+node --test
+```
+
+GitHub Actions runs them on every push and pull request, and only deploys to GitHub Pages when they pass.
+
 ## Updating
 
-The whole page is `index.html`. Edit it, commit, push, and GitHub Pages rebuilds in about a minute.
+The page is `index.html` and the model is `model.js`. Edit, commit, push. The workflow tests and deploys in a minute or two.

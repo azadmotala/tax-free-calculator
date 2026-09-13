@@ -1,0 +1,11 @@
+{
+  "name": "tax-free-calculator",
+  "private": true,
+  "description": "A South African tax-free savings calculator. The SARS rules are tested in test/ against model.js.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

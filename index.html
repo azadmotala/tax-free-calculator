@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tax-Free Savings Calculator</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700&family=DM+Sans:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
 <style>
@@ -210,22 +212,24 @@
   <div class="toast" id="toast" role="status"></div>
 </div>
 
+<script src="model.js"></script>
 <script>
 (function () {
   'use strict';
-  const LIMIT = { lifetime: 500000 };
-  function limitFor(year) { return year <= 2016 ? 30000 : year <= 2019 ? 33000 : year <= 2025 ? 36000 : 46000; }
-  const TAXABLE = { divYield: 0.03, divTax: 0.2, cgt: 0.18 };
-  const FIELDS = {
-    age:       { min: 1,    max: 99,     step: 1,    px: 10, fmt: v => String(v) },
-    startYear: { min: 2015, max: 2080,   step: 1,    px: 10, fmt: v => String(v) },
-    contrib:   { min: 0,    max: 46000,  step: 500,  px: 3,  fmt: v => fmtR(v) },
-    gross:     { min: 0,    max: 20,     step: 0.05, px: 6,  prec: 2, fmt: v => fmtPct(v) },
-    fees:      { min: 0,    max: 5,      step: 0.01, px: 4,  prec: 2, fmt: v => fmtPct(v) },
-    until:     { min: 2,    max: 100,    step: 1,    px: 10, fmt: v => String(v) },
-    rate:      { min: 0,    max: 20,     step: 0.25, px: 6,  prec: 2, fmt: v => fmtPct(v) },
-    end:       { min: 3,    max: 110,    step: 1,    px: 10, fmt: v => String(v) }
+  const M = window.TFSA;
+  const { LIMIT, limitFor, clampState, simulate, simulateTaxable } = M;
+  const UI = {
+    age:       { px: 10, fmt: v => String(v) },
+    startYear: { px: 10, fmt: v => String(v) },
+    contrib:   { px: 3,  fmt: v => fmtR(v) },
+    gross:     { px: 6,  fmt: v => fmtPct(v) },
+    fees:      { px: 4,  fmt: v => fmtPct(v) },
+    until:     { px: 10, fmt: v => String(v) },
+    rate:      { px: 6,  fmt: v => fmtPct(v) },
+    end:       { px: 10, fmt: v => String(v) }
   };
+  const FIELDS = {};
+  for (const k in M.FIELDS) FIELDS[k] = Object.assign({}, M.FIELDS[k], UI[k]);
   const SCENARIOS = [
     { id: 'late1',   label: 'Start one year later',    dash: '6 4',      make: s => ({ ...s, age: s.age + 1, startYear: s.startYear + 1 }) },
     { id: 'late5',   label: 'Start five years later',  dash: '2 4',      make: s => ({ ...s, age: s.age + 5, startYear: s.startYear + 5 }) },
@@ -234,7 +238,7 @@
     { id: 'taxable', label: 'Taxable account instead', dash: '4 4 1 4',  taxable: true }
   ];
 
-  let S = { age: 30, startYear: 2026, contrib: 46000, gross: 8.37, fees: 0.37, until: 65, rate: 4, end: 90 };
+  let S = Object.assign({}, M.DEFAULTS);
   let view = 'plan';
   let active = new Set();
   let scrub = -1;
@@ -263,65 +267,6 @@
   }
   function fmtPct(v) { return v.toFixed(2) + '%'; }
   const pct = fmtPct;
-
-  function clampState(s) {
-    const o = { ...s };
-    for (const k in FIELDS) {
-      const f = FIELDS[k];
-      let v = Number(o[k]); if (!Number.isFinite(v)) v = f.min;
-      v = f.prec ? Number(v.toFixed(f.prec)) : Math.round(v / f.step) * f.step;
-      const max = k === 'contrib' ? limitFor(o.startYear) : f.max;
-      o[k] = Math.min(max, Math.max(f.min, v));
-    }
-    if (o.until <= o.age) o.until = o.age + 1;
-    if (o.end <= o.until) o.end = o.until + 1;
-    if (o.end > FIELDS.end.max) { o.end = FIELDS.end.max; o.until = Math.min(o.until, o.end - 1); }
-    return o;
-  }
-
-  function simulate(s) {
-    const g = (s.gross - s.fees) / 100;
-    const rows = []; let cum = 0, prev = 0, growthSum = 0, drawn = 0;
-    const n = s.end - s.age + 1, untilIdx = s.until - s.age;
-    const atMax = s.contrib >= limitFor(s.startYear);
-    for (let i = 0; i < n; i++) {
-      const year = s.startYear + i, limit = limitFor(year), drawing = i > untilIdx;
-      const planned = drawing ? 0 : (atMax ? limit : Math.min(s.contrib, limit));
-      const deposit = Math.max(0, Math.min(planned, LIMIT.lifetime - cum));
-      cum += deposit;
-      const opening = prev + deposit;
-      const withdrawal = drawing ? opening * s.rate / 100 : 0;
-      const growth = (opening - withdrawal) * g, closing = opening - withdrawal + growth;
-      rows.push({ i, age: s.age + i, year, limit, planned, deposit, cum, opening, withdrawal, growth, closing });
-      if (!drawing) growthSum += growth;
-      drawn += withdrawal; prev = closing;
-    }
-    const final = rows[untilIdx].closing;
-    const r = { rows, n, untilIdx, final, endValue: prev, drawn, contributed: cum, growth: growthSum, atMax };
-    r.firstDraw = untilIdx + 1 < n ? rows[untilIdx + 1].withdrawal : 0;
-    const acc = rows.slice(0, untilIdx + 1);
-    r.outpace = acc.findIndex(x => x.planned > 0 && x.growth > x.planned);
-    r.limit = rows.findIndex(x => x.cum >= LIMIT.lifetime);
-    r.half = final > 0 ? acc.findIndex(x => x.closing >= final / 2) : -1;
-    if (r.half <= 0 || r.half >= untilIdx) r.half = -1;
-    r.draw = s.rate > 0 && untilIdx < n - 1 ? untilIdx : -1;
-    return r;
-  }
-  function simulateTaxable(s) {
-    const g = (s.gross - s.fees) / 100;
-    const rows = []; let cum = 0, prev = 0;
-    const n = s.until - s.age + 1;
-    const atMax = s.contrib >= limitFor(s.startYear);
-    for (let i = 0; i < n; i++) {
-      const limit = limitFor(s.startYear + i);
-      const deposit = Math.max(0, Math.min(atMax ? limit : Math.min(s.contrib, limit), LIMIT.lifetime - cum)); cum += deposit;
-      const opening = prev + deposit;
-      const closing = opening + opening * g - opening * TAXABLE.divYield * TAXABLE.divTax;
-      rows.push({ age: s.age + i, closing }); prev = closing;
-    }
-    const final = prev - Math.max(0, prev - cum) * TAXABLE.cgt;
-    return { rows, final, preCgt: prev };
-  }
 
   function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))); const f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
 
