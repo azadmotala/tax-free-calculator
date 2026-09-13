@@ -97,15 +97,24 @@
   .list .row.plan .mono { color: var(--accent); }
   .empty { color: var(--muted); font-size: 13px; }
 
-  .tablewrap { margin-top: 22px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
-  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; }
+  .tablewrap { margin-top: 22px; overflow: auto; max-height: max(360px, calc(100vh - 120px)); border: 1px solid var(--line); border-radius: 12px; outline: none; }
+  .tablewrap:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 860px; font-size: 13px; }
   th, td { padding: 10px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
-  th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; color: var(--muted); position: sticky; top: 0; background: var(--bg); }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; color: var(--muted); position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line-2); }
+  th:first-child, td:first-child { position: sticky; left: 0; z-index: 1; border-right: 1px solid var(--line); }
+  th:first-child { z-index: 3; }
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
-  td { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td { font-family: var(--mono); font-variant-numeric: tabular-nums; background: var(--bg); transition: background-color 0.08s; }
   td.note { font-family: var(--body); color: var(--accent); text-align: left; }
-  tr.mark td { background: var(--surface); }
+  tbody tr { cursor: pointer; }
+  tbody tr.mark td { background: var(--surface); }
+  tbody tr:hover td { background: var(--line); }
+  tbody tr.sel td { background: #1b2d2c; color: var(--white); }
+  tbody tr.sel td:first-child { color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+  tbody tr.sel td.note { color: var(--accent); }
   tr:last-child td { border-bottom: 0; }
+  .tablehint { margin-top: 10px; }
 
   .foot { margin-top: 12px; max-width: 900px; line-height: 1.7; text-transform: none; letter-spacing: 0.02em; }
   .foot summary { cursor: pointer; text-transform: uppercase; letter-spacing: 0.1em; list-style: none; }
@@ -138,7 +147,7 @@
     .tiles { margin-top: 22px; } .tile { min-height: 112px; padding: 18px 20px; }
     .foot { margin-top: 24px; }
   }
-  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .toast, td { transition: none; } }
 </style>
 
 <div class="page">
@@ -199,12 +208,13 @@
     </section>
 
     <section id="table" hidden>
-      <div class="tablewrap">
+      <div class="tablewrap" id="tablewrap" tabindex="0" role="region" aria-label="Year by year table. Use the arrow keys to move between years.">
         <table>
           <thead><tr><th>Age</th><th>Year</th><th>Deposit</th><th>Total deposited</th><th>Opening</th><th>Withdrawn</th><th>Growth</th><th>Closing</th><th></th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
+      <div class="cap tablehint">Click a year, or use the arrow keys, to park on it. The chart&rsquo;s scrubber stays on the same year.</div>
     </section>
 
     <details class="cap foot"><summary>How it calculates</summary><p>Each deposit goes in at the start of the year and grows once a year at your return minus fees. Withdrawals start the year after you stop adding, each one a fixed share of that year's opening balance, taken before growth. The ordinary-account comparison assumes a 3% dividend yield taxed at 20%, and 18% capital gains tax when you cash out. SARS annual limits follow the year of each deposit: R30&nbsp;000 from March 2015, R33&nbsp;000 from March 2017, R36&nbsp;000 from March 2020 and R46&nbsp;000 from March 2026, with a R500&nbsp;000 lifetime limit and 40% tax on anything over.</p></details>
@@ -437,6 +447,7 @@
 
   function renderTable() {
     if ($('table').hidden) return;
+    if (scrub < 0 || scrub >= base.n) scrub = Math.round((base.n - 1) / 2);
     let h = '';
     base.rows.forEach(r => {
       const notes = [];
@@ -445,9 +456,30 @@
       if (r.i === base.half) notes.push('halfway');
       if (r.i === base.draw + 1 && base.draw >= 0) notes.push('withdrawals begin');
       if (base.atMax && r.i > 0 && r.deposit > 0 && r.limit > base.rows[r.i - 1].limit) notes.push('limit rises to ' + fmtR(r.limit));
-      h += '<tr' + (notes.length ? ' class="mark"' : '') + '><td>' + r.age + '</td><td>' + r.year + '</td><td>' + fmtR(r.deposit) + '</td><td>' + fmtR(r.cum) + '</td><td>' + fmtR(r.opening) + '</td><td>' + (r.withdrawal > 0 ? fmtR(r.withdrawal) : '—') + '</td><td>' + fmtR(r.growth) + '</td><td>' + fmtR(r.closing) + '</td><td class="note">' + notes.join(', ') + '</td></tr>';
+      const cls = (notes.length ? 'mark' : '') + (r.i === scrub ? ' sel' : '');
+      h += '<tr data-i="' + r.i + '" class="' + cls.trim() + '" aria-selected="' + (r.i === scrub) + '"><td>' + r.age + '</td><td>' + r.year + '</td><td>' + fmtR(r.deposit) + '</td><td>' + fmtR(r.cum) + '</td><td>' + fmtR(r.opening) + '</td><td>' + (r.withdrawal > 0 ? fmtR(r.withdrawal) : '—') + '</td><td>' + fmtR(r.growth) + '</td><td>' + fmtR(r.closing) + '</td><td class="note">' + notes.join(', ') + '</td></tr>';
     });
     $('tbody').innerHTML = h;
+  }
+
+  function selectRow(i, reveal) {
+    if (!base) return;
+    i = Math.max(0, Math.min(base.n - 1, i));
+    scrub = i;
+    const tb = $('tbody');
+    const prev = tb.querySelector('tr.sel');
+    if (prev) { prev.classList.remove('sel'); prev.setAttribute('aria-selected', 'false'); }
+    const tr = tb.children[i];
+    if (!tr) return;
+    tr.classList.add('sel'); tr.setAttribute('aria-selected', 'true');
+    if (reveal) revealRow(tr, reveal === 'center');
+  }
+  function revealRow(tr, center) {
+    const wrap = $('tablewrap'), head = wrap.querySelector('thead').offsetHeight;
+    const w = wrap.getBoundingClientRect(), b = tr.getBoundingClientRect();
+    if (center) { wrap.scrollTop += (b.top + b.height / 2) - (w.top + head + (w.height - head) / 2); return; }
+    if (b.top < w.top + head) wrap.scrollTop -= (w.top + head) - b.top;
+    else if (b.bottom > w.bottom) wrap.scrollTop += b.bottom - w.bottom;
   }
 
   function renderWhatIf() {
@@ -473,13 +505,18 @@
     $('whatif').hidden = v !== 'whatif';
     $('table').hidden = v !== 'table';
     render();
+    if (v === 'table') { const tr = $('tbody').children[scrub]; if (tr) revealRow(tr, true); }
   }
 
   function setValue(k, v) {
+    const keepAge = base && scrub >= 0 && base.rows[scrub] ? base.rows[scrub].age : null;
     const o = { ...S, [k]: v };
     if (k === 'age' && o.until <= o.age) o.until = o.age + 1;
     if (k === 'startYear' && S.contrib >= limitFor(S.startYear)) o.contrib = limitFor(Math.min(FIELDS.startYear.max, Math.max(FIELDS.startYear.min, Math.round(v))));
-    S = clampState(o); scrub = -1; render();
+    S = clampState(o);
+    const idx = keepAge === null ? -1 : keepAge - S.age;
+    scrub = idx >= 0 && idx <= S.end - S.age ? idx : -1;
+    render();
   }
 
   let drag = null;
@@ -527,6 +564,16 @@
     if (ni !== scrub) { scrub = ni; renderChart(); }
   });
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+  $('tbody').addEventListener('click', e => { const tr = e.target.closest('tr[data-i]'); if (tr) { selectRow(Number(tr.dataset.i), false); $('tablewrap').focus({ preventScroll: true }); } });
+  $('tablewrap').addEventListener('keydown', e => {
+    if (!base) return;
+    const page = Math.max(1, Math.floor(($('tablewrap').clientHeight - 40) / 41));
+    const moves = { ArrowDown: 1, ArrowUp: -1, PageDown: page, PageUp: -page, Home: -Infinity, End: Infinity };
+    if (!(e.key in moves)) return;
+    e.preventDefault();
+    const m = moves[e.key];
+    selectRow(m === -Infinity ? 0 : m === Infinity ? base.n - 1 : scrub + m, true);
+  });
   $('chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const id = b.dataset.id; if (active.has(id)) active.delete(id); else active.add(id); render(); });
 
   let toastT;
