@@ -40,7 +40,7 @@
   .num[data-key="contrib"] { min-width: 8.2ch; }
   .num[data-key="gross"], .num[data-key="fees"], .num[data-key="rate"] { min-width: 7.6ch; }
   .num[data-key="end"] { min-width: 3ch; }
-  .sentence.second { margin-top: 10px; font-size: clamp(19px, 1.7vw, 24px); }
+  .sentence.second { margin-top: 10px; }
   .sentence .summary { color: var(--muted); }
   .num:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
   .num.dragging { background: var(--accent-fade); }
@@ -49,10 +49,12 @@
   .hint { margin-top: 10px; }
   .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-  .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px 40px; flex-wrap: wrap; margin-top: 26px; }
-  .hero-main { display: flex; flex-direction: column; gap: 8px; }
-  .big { font-family: var(--disp); font-weight: 700; font-size: clamp(64px, 7.2vw, 104px); line-height: 0.88; letter-spacing: -0.035em; color: var(--white); }
-  .readouts { display: flex; gap: 20px 40px; flex-wrap: wrap; padding-bottom: 6px; }
+  .hero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; margin-top: 28px; }
+  .hero-block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .hero-block.draw { padding-left: 40px; border-left: 1px solid var(--line); }
+  .big { font-family: var(--disp); font-weight: 700; font-size: clamp(52px, 6vw, 88px); line-height: 0.88; letter-spacing: -0.035em; color: var(--white); }
+  .hero-block.save .big { color: var(--accent); }
+  .readouts { display: flex; gap: 16px 32px; flex-wrap: wrap; margin-top: 12px; }
   .readout { display: flex; flex-direction: column; gap: 6px; }
   .readout .mono { font-size: 20px; }
   .readout.accent .mono { color: var(--accent); }
@@ -62,6 +64,8 @@
   .ylab { position: absolute; left: 0; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; }
   .tip { position: absolute; display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); min-width: 190px; pointer-events: none; }
   .tip .cap { color: var(--accent); }
+  .tip.draw .cap { color: var(--white); }
+  .phase { position: absolute; top: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); pointer-events: none; white-space: nowrap; }
   .tip .v { font-family: var(--mono); font-size: 20px; color: var(--white); font-variant-numeric: tabular-nums; }
   .tip .s { font-family: var(--mono); font-size: 11px; color: var(--muted); }
   .tip .note { max-width: 250px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-2); font-size: 12px; line-height: 1.45; color: var(--text); }
@@ -106,7 +110,11 @@
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   .toast.on { opacity: 1; }
 
-  @media (max-width: 960px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile.accent { grid-column: 1 / -1; } }
+  @media (max-width: 960px) {
+    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile.accent { grid-column: 1 / -1; }
+    .hero { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .hero-block.draw { padding-left: 0; border-left: 0; padding-top: 24px; border-top: 1px solid var(--line); }
+  }
   @media (max-width: 640px) {
     .top { padding-top: 10px; padding-bottom: 10px; }
     .seg { order: 3; width: 100%; justify-content: stretch; }
@@ -135,15 +143,24 @@
     <div class="cap hint" id="hint"></div>
 
     <section class="hero" aria-live="polite">
-      <div class="hero-main">
+      <div class="hero-block save">
         <div class="cap" id="heroCap"></div>
         <div class="big" id="heroValue"></div>
+        <div class="readouts">
+          <div class="readout"><div class="cap">You put in</div><div class="mono" id="rPutIn"></div></div>
+          <div class="readout accent"><div class="cap">Growth</div><div class="mono" id="rGrowth"></div></div>
+          <div class="readout"><div class="cap">Every R1 becomes</div><div class="mono" id="rMultiple"></div></div>
+          <div class="readout"><div class="cap">Tax you&rsquo;d have paid</div><div class="mono" id="rTax"></div></div>
+        </div>
       </div>
-      <div class="readouts">
-        <div class="readout"><div class="cap">You put in</div><div class="mono" id="rPutIn"></div></div>
-        <div class="readout accent"><div class="cap">Growth</div><div class="mono" id="rGrowth"></div></div>
-        <div class="readout"><div class="cap">Every R1 becomes</div><div class="mono" id="rMultiple"></div></div>
-        <div class="readout"><div class="cap">Tax you&rsquo;d have paid</div><div class="mono" id="rTax"></div></div>
+      <div class="hero-block draw">
+        <div class="cap" id="drawCap"></div>
+        <div class="big" id="drawValue"></div>
+        <div class="readouts">
+          <div class="readout"><div class="cap">A year</div><div class="mono" id="rYear"></div></div>
+          <div class="readout"><div class="cap" id="rDrawnCap">Drawn in total</div><div class="mono" id="rDrawn"></div></div>
+          <div class="readout"><div class="cap" id="rLeftCap">Left at the end</div><div class="mono" id="rLeft"></div></div>
+        </div>
       </div>
     </section>
 
@@ -315,6 +332,20 @@
     const drawYears = base.n - 1 - base.untilIdx;
     if (S.rate > 0) $('drawSummary').textContent = 'That’s ' + fmtBig(base.firstDraw / 12) + ' a month to start, ' + fmtBig(base.drawn) + ' drawn over ' + drawYears + (drawYears === 1 ? ' year' : ' years') + ', and ' + fmtShort(base.endValue) + ' still there at ' + S.end + '.';
     else $('drawSummary').textContent = 'Nothing comes out, so it keeps growing to ' + fmtShort(base.endValue) + ' at ' + S.end + '.';
+    $('rDrawnCap').textContent = 'Drawn over ' + drawYears + (drawYears === 1 ? ' year' : ' years');
+    $('rLeftCap').textContent = 'Left at ' + S.end;
+    $('rLeft').textContent = fmtBig(base.endValue);
+    if (S.rate > 0) {
+      $('drawCap').textContent = 'From ' + (S.until + 1) + ' · a month, tax-free';
+      $('drawValue').textContent = fmtBig(base.firstDraw / 12);
+      $('rYear').textContent = fmtBig(base.firstDraw);
+      $('rDrawn').textContent = fmtBig(base.drawn);
+    } else {
+      $('drawCap').textContent = 'At ' + S.end + ' · untouched';
+      $('drawValue').textContent = fmtShort(base.endValue);
+      $('rYear').textContent = '—';
+      $('rDrawn').textContent = 'R0';
+    }
     const rises = base.atMax && limitFor(S.startYear) < 46000;
     $('hint').innerHTML = 'Drag a number to change it, or click to type &middot; SARS limit for ' + S.startYear + ': ' + fmtR(limitFor(S.startYear)) + ' a year &middot; R500' + NB + '000 lifetime' + (rises ? ' &middot; you&rsquo;re at the limit, so each year&rsquo;s deposit follows it up to R46' + NB + '000 in 2026' : '');
     $('heroCap').textContent = 'At ' + last.age + ' · ' + last.year;
@@ -362,21 +393,30 @@
     let svg = '';
     for (let v = step; v <= yMax + 1e-6; v += step) svg += '<line x1="0" x2="' + W + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#1f262d" stroke-width="1"></line>';
     svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#1f262d" stroke-width="1"></line>';
-    svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6b8" stop-opacity="0.28"></stop><stop offset="1" stop-color="#6fd6b8" stop-opacity="0"></stop></linearGradient></defs>';
-    if (base.untilIdx < n - 1) svg += '<rect x="' + x(base.untilIdx).toFixed(1) + '" y="0" width="' + (W - x(base.untilIdx)).toFixed(1) + '" height="' + H + '" fill="#e9ecef" fill-opacity="0.035"></rect>';
-    svg += '<path d="M' + pts.join(' L') + ' L' + W + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
+    svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6b8" stop-opacity="0.28"></stop><stop offset="1" stop-color="#6fd6b8" stop-opacity="0"></stop></linearGradient>'
+        + '<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#e9ecef" stroke-opacity="0.22" stroke-width="1.2"></line></pattern></defs>';
+    const u = base.untilIdx, xu = x(u).toFixed(1);
+    const ptsSave = pts.slice(0, u + 1), ptsDraw = pts.slice(u);
+    svg += '<path d="M' + ptsSave.join(' L') + ' L' + xu + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
+    if (u < n - 1) {
+      svg += '<path d="M' + ptsDraw.join(' L') + ' L' + W + ',' + H + ' L' + xu + ',' + H + ' Z" fill="url(#hatch)"></path>';
+      svg += '<line x1="' + xu + '" x2="' + xu + '" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1"></line>';
+    }
     svg += '<path d="M' + base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.cum).toFixed(1)).join(' L') + '" fill="none" stroke="#3a444d" stroke-width="1.5" stroke-dasharray="2 5"></path>';
     for (const e of extras) {
       const p = e.s.rows.map(r => xa(r.age).toFixed(1) + ',' + y(r.closing).toFixed(1));
       svg += '<path d="M' + p.join(' L') + '" fill="none" stroke="#7b858e" stroke-width="1.5" stroke-dasharray="' + e.sc.dash + '"></path>';
     }
-    svg += '<path d="M' + pts.join(' L') + '" fill="none" stroke="#6fd6b8" stroke-width="2.5" stroke-linejoin="round"></path>';
+    svg += '<path d="M' + ptsSave.join(' L') + '" fill="none" stroke="#6fd6b8" stroke-width="2.5" stroke-linejoin="round"></path>';
+    if (u < n - 1) svg += '<path d="M' + ptsDraw.join(' L') + '" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linejoin="round"></path>';
     for (const i of [base.outpace, base.limit, base.half, base.draw]) if (i >= 0) svg += '<line x1="' + x(i).toFixed(1) + '" x2="' + x(i).toFixed(1) + '" y1="' + y(base.rows[i].closing).toFixed(1) + '" y2="' + H + '" stroke="#7b858e" stroke-width="1"></line>';
     svg += '<line id="scrubLine" x1="0" x2="0" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1" stroke-dasharray="4 4"></line>';
     $('svg').innerHTML = svg;
 
     let ov = '';
     for (let v = step; v <= yMax + 1e-6; v += step) ov += '<div class="ylab" style="top:' + (y(v) - 14).toFixed(1) + 'px">' + fmtTick(v) + '</div>';
+    ov += '<div class="phase" style="left:' + (x(u) * 0.5).toFixed(1) + 'px; transform: translateX(-50%)">Saving · ' + S.age + ' to ' + S.until + '</div>';
+    if (u < n - 1) ov += '<div class="phase" style="left:' + ((x(u) + W) / 2).toFixed(1) + 'px; transform: translateX(-50%)">' + (S.rate > 0 ? 'Drawing ' + fmtPct(S.rate) + ' a year' : 'Untouched') + ' · ' + (S.until + 1) + ' to ' + S.end + '</div>';
     for (const e of extras) { const lastRow = e.s.rows[e.s.rows.length - 1]; ov += '<div class="endlab" style="left:' + W + 'px; top:' + y(lastRow.closing).toFixed(1) + 'px">' + e.sc.label + ' · ' + fmtShort(e.s.final) + '</div>'; }
     $('overlay').innerHTML = ov;
 
@@ -409,6 +449,7 @@
     const line = $('scrubLine'); if (line) { line.setAttribute('x1', px.toFixed(1)); line.setAttribute('x2', px.toFixed(1)); }
     const dot = $('dot'); dot.style.left = px + 'px'; dot.style.top = py + 'px';
     const tip = $('tip');
+    tip.classList.toggle('draw', r.i > base.untilIdx);
     const since = base.limit >= 0 && r.i > base.limit ? r.i - base.limit : 0;
     let dep = r.deposit > 0 ? fmtR(r.deposit) + ' deposited' : since > 0 ? 'deposits stopped ' + since + ' yr' + (since > 1 ? 's' : '') + ' ago' : 'no deposit';
     if (r.withdrawal > 0) dep = fmtBig(-r.withdrawal) + ' drawn (' + fmtBig(r.withdrawal / 12) + ' a month)';
