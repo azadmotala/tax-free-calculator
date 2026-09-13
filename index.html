@@ -1,23 +1,92 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1115">
+<script>
+  // Apply a saved theme choice before the page paints, so it never flashes the other theme first.
+  (function () {
+    try {
+      var t = localStorage.getItem('tfsc-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
 <title>Tax-Free Savings Calculator</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700&family=DM+Sans:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
 <style>
+  /* Dark is the default. The light palette applies when the device prefers light (unless the page is
+     stamped dark), or when the page is stamped light by the toggle or by the claude.ai viewer.
+     --white is the strongest ink: white on dark, near-black on light. --accent carries text and lines;
+     --accent-fill is the mint used for filled shapes, which is too pale to read as text on white. */
   :root {
+    --mode: dark;
     --bg: #0d1115;
     --surface: #12181e;
     --line: #1f262d;
     --line-2: #2b343c;
+    --line-3: #3a444d;
     --text: #e9ecef;
     --muted: #7b858e;
     --white: #ffffff;
     --accent: #6fd6b8;
+    --accent-fill: #6fd6b8;
     --accent-ink: #0d1115;
     --accent-fade: rgba(111, 214, 184, 0.14);
+    --sel-bg: #1b2d2c;
+    --save-line: #6fd6b8;
+    --draw-line: #e9ecef;
+    --fill-top: 0.28;
+    --hatch-line-op: 0.42;
+    --hatch-tint-op: 0.05;
     --disp: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
     --body: "DM Sans", "Helvetica Neue", Arial, sans-serif;
     --mono: "Geist Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --mode: light;
+      --bg: #f4f6f7;
+      --surface: #ffffff;
+      --line: #e1e6e9;
+      --line-2: #cfd6db;
+      --line-3: #aab4bb;
+      --text: #1b2126;
+      --muted: #5c6770;
+      --white: #0b0f12;
+      --accent: #0b7a5c;
+      --accent-fill: #6fd6b8;
+      --accent-ink: #0d1115;
+      --accent-fade: rgba(11, 122, 92, 0.10);
+      --sel-bg: #e2f2ec;
+      --save-line: #0b7a5c;
+      --draw-line: #1b2126;
+      --fill-top: 0.4;
+      --hatch-line-op: 0.36;
+      --hatch-tint-op: 0.035;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --mode: light;
+    --bg: #f4f6f7;
+    --surface: #ffffff;
+    --line: #e1e6e9;
+    --line-2: #cfd6db;
+    --line-3: #aab4bb;
+    --text: #1b2126;
+    --muted: #5c6770;
+    --white: #0b0f12;
+    --accent: #0b7a5c;
+    --accent-fill: #6fd6b8;
+    --accent-ink: #0d1115;
+    --accent-fade: rgba(11, 122, 92, 0.10);
+    --sel-bg: #e2f2ec;
+    --save-line: #0b7a5c;
+    --draw-line: #1b2126;
+    --fill-top: 0.4;
+    --hatch-line-op: 0.36;
+    --hatch-tint-op: 0.035;
+    color-scheme: light;
   }
   html, body { background: var(--bg); }
   body { margin: 0; color: var(--text); font-family: var(--body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
@@ -32,8 +101,15 @@
   .seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font-weight: 500; font-size: 14px; padding: 0 18px; border-radius: 999px; cursor: pointer; min-height: 34px; }
   .seg button:hover { color: var(--text); }
   .seg button[aria-pressed="true"] { background: var(--line); color: var(--text); }
-  .seg button:focus-visible, .share:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .share { appearance: none; border: 0; display: inline-flex; align-items: center; height: 40px; padding: 0 20px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 500; cursor: pointer; }
+  .seg button:focus-visible, .share:focus-visible, .chip:focus-visible, .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .actions { display: flex; align-items: center; gap: 8px; }
+  .theme { appearance: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; color: var(--text); cursor: pointer; }
+  .theme:hover { background: var(--surface); }
+  .theme svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .theme .i-moon { display: none; }
+  .theme[data-mode="light"] .i-sun { display: none; }
+  .theme[data-mode="light"] .i-moon { display: block; }
+  .share { appearance: none; border: 0; display: inline-flex; align-items: center; height: 40px; padding: 0 20px; border-radius: 999px; background: var(--accent-fill); color: var(--accent-ink); font-size: 14px; font-weight: 500; cursor: pointer; }
 
   .wrap { padding: 0 clamp(16px, 4.4vw, 64px) 40px; }
   .sentence { margin: 16px 0 0; font-family: var(--disp); font-weight: 300; font-size: clamp(20px, 1.9vw, 27px); line-height: 1.35; letter-spacing: -0.01em; max-width: 1312px; text-wrap: pretty; }
@@ -91,7 +167,7 @@
   .tile { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; padding: 16px 18px; border-radius: 12px; background: var(--surface); min-height: 96px; }
   .tile .n { font-family: var(--disp); font-size: 30px; font-weight: 500; line-height: 1; color: var(--white); }
   .tile .t { font-size: 12px; line-height: 1.45; color: var(--muted); margin-top: 6px; }
-  .tile.accent { background: var(--accent); color: var(--accent-ink); }
+  .tile.accent { background: var(--accent-fill); color: var(--accent-ink); }
   .tile.accent .cap, .tile.accent .n, .tile.accent .t { color: var(--accent-ink); }
 
   .panel { margin-top: 22px; display: flex; flex-direction: column; gap: 16px; }
@@ -118,7 +194,7 @@
   tbody tr { cursor: pointer; }
   tbody tr.mark td { background: var(--surface); }
   tbody tr:hover td { background: var(--line); }
-  tbody tr.sel td { background: #1b2d2c; color: var(--white); }
+  tbody tr.sel td { background: var(--sel-bg); color: var(--white); }
   tbody tr.sel td:first-child { color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
   tbody tr.sel td.note { color: var(--accent); }
   tr:last-child td { border-bottom: 0; }
@@ -143,6 +219,11 @@
     .top { padding-top: 10px; padding-bottom: 10px; row-gap: 10px; }
     .brand { font-size: 17px; }
     .share { height: 36px; padding: 0 14px; font-size: 13px; }
+    .theme { width: 36px; height: 36px; }
+    .actions { gap: 6px; }
+  }
+  @media (max-width: 400px) {
+    .wide-only { display: none; }
     .seg { order: 3; width: 100%; justify-content: stretch; }
     .seg button { flex: 1; font-size: 13px; padding: 0 8px; min-height: 38px; white-space: nowrap; }
     .num[data-key] { min-width: 0; }
@@ -162,6 +243,7 @@
     .brand { font-size: 22px; }
     .seg button { font-size: 15px; min-height: 38px; padding: 0 20px; }
     .share { height: 44px; font-size: 15px; padding: 0 22px; }
+    .theme { width: 44px; height: 44px; }
   }
   @media (prefers-reduced-motion: reduce) { .toast, td { transition: none; } }
 </style>
@@ -174,7 +256,13 @@
       <button type="button" data-view="table" aria-pressed="false">Year by year</button>
       <button type="button" data-view="whatif" aria-pressed="false">What if</button>
     </div>
-    <button type="button" class="share" id="share">Share plan</button>
+    <div class="actions">
+      <button type="button" class="theme" id="theme" aria-label="Switch to light theme" title="Switch to light theme">
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
+      </button>
+      <button type="button" class="share" id="share"><span>Share<span class="wide-only"> plan</span></span></button>
+    </div>
   </header>
 
   <main class="wrap">
@@ -378,28 +466,29 @@
     const pts = base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.closing).toFixed(1));
     curves = [base.rows.map(r => [x(r.i), y(r.closing)])].concat(extras.map(e => e.s.rows.map(r => [xa(r.age), y(r.closing)])));
     let svg = '';
-    for (let v = step; v <= yMax + 1e-6; v += step) svg += '<line x1="0" x2="' + W + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#1f262d" stroke-width="1"></line>';
-    svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#1f262d" stroke-width="1"></line>';
-    svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6b8" stop-opacity="0.28"></stop><stop offset="1" stop-color="#6fd6b8" stop-opacity="0"></stop></linearGradient>'
-        + '<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#e9ecef" fill-opacity="0.05"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#e9ecef" stroke-opacity="0.42" stroke-width="1.2"></line></pattern></defs>';
+    // Every colour in the chart comes from a theme variable, so switching themes needs no redraw.
+    for (let v = step; v <= yMax + 1e-6; v += step) svg += '<line x1="0" x2="' + W + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" style="stroke: var(--line)" stroke-width="1"></line>';
+    svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" style="stroke: var(--line)" stroke-width="1"></line>';
+    svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: var(--accent-fill); stop-opacity: var(--fill-top)"></stop><stop offset="1" style="stop-color: var(--accent-fill); stop-opacity: 0"></stop></linearGradient>'
+        + '<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" style="fill: var(--draw-line); fill-opacity: var(--hatch-tint-op)"></rect><line x1="0" y1="0" x2="0" y2="7" style="stroke: var(--draw-line); stroke-opacity: var(--hatch-line-op)" stroke-width="1.2"></line></pattern></defs>';
     const u = base.untilIdx, xu = x(u).toFixed(1), drawing = S.rate > 0 && u < n - 1;
     const ptsSave = drawing ? pts.slice(0, u + 1) : pts, ptsDraw = pts.slice(u);
     svg += '<path d="M' + ptsSave.join(' L') + ' L' + (drawing ? xu : W) + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
     if (drawing) {
       svg += '<path d="M' + ptsDraw.join(' L') + ' L' + W + ',' + H + ' L' + xu + ',' + H + ' Z" fill="url(#hatch)"></path>';
-      svg += '<line x1="' + xu + '" x2="' + xu + '" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1"></line>';
+      svg += '<line x1="' + xu + '" x2="' + xu + '" y1="0" y2="' + H + '" style="stroke: var(--draw-line)" stroke-width="1"></line>';
     } else if (u < n - 1) {
-      svg += '<line x1="' + xu + '" x2="' + xu + '" y1="0" y2="' + H + '" stroke="#3a444d" stroke-width="1" stroke-dasharray="3 5"></line>';
+      svg += '<line x1="' + xu + '" x2="' + xu + '" y1="0" y2="' + H + '" style="stroke: var(--line-3)" stroke-width="1" stroke-dasharray="3 5"></line>';
     }
-    svg += '<path d="M' + base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.cum).toFixed(1)).join(' L') + '" fill="none" stroke="#3a444d" stroke-width="1.5" stroke-dasharray="2 5"></path>';
+    svg += '<path d="M' + base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.cum).toFixed(1)).join(' L') + '" fill="none" style="stroke: var(--line-3)" stroke-width="1.5" stroke-dasharray="2 5"></path>';
     for (const e of extras) {
       const p = e.s.rows.map(r => xa(r.age).toFixed(1) + ',' + y(r.closing).toFixed(1));
-      svg += '<path d="M' + p.join(' L') + '" fill="none" stroke="#7b858e" stroke-width="1.5" stroke-dasharray="' + e.sc.dash + '"></path>';
+      svg += '<path class="ln-scen" d="M' + p.join(' L') + '" fill="none" style="stroke: var(--muted)" stroke-width="1.5" stroke-dasharray="' + e.sc.dash + '"></path>';
     }
-    svg += '<path d="M' + ptsSave.join(' L') + '" fill="none" stroke="#6fd6b8" stroke-width="2.5" stroke-linejoin="round"></path>';
-    if (drawing) svg += '<path d="M' + ptsDraw.join(' L') + '" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linejoin="round"></path>';
-    for (const i of [base.outpace, base.limit, base.half, base.draw]) if (i >= 0) svg += '<line x1="' + x(i).toFixed(1) + '" x2="' + x(i).toFixed(1) + '" y1="' + y(base.rows[i].closing).toFixed(1) + '" y2="' + H + '" stroke="#7b858e" stroke-width="1"></line>';
-    svg += '<line id="scrubLine" x1="0" x2="0" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1" stroke-dasharray="4 4"></line>';
+    svg += '<path class="ln-save" d="M' + ptsSave.join(' L') + '" fill="none" style="stroke: var(--save-line)" stroke-width="2.5" stroke-linejoin="round"></path>';
+    if (drawing) svg += '<path class="ln-draw" d="M' + ptsDraw.join(' L') + '" fill="none" style="stroke: var(--draw-line)" stroke-width="2" stroke-linejoin="round"></path>';
+    for (const i of [base.outpace, base.limit, base.half, base.draw]) if (i >= 0) svg += '<line x1="' + x(i).toFixed(1) + '" x2="' + x(i).toFixed(1) + '" y1="' + y(base.rows[i].closing).toFixed(1) + '" y2="' + H + '" style="stroke: var(--muted)" stroke-width="1"></line>';
+    svg += '<line id="scrubLine" x1="0" x2="0" y1="0" y2="' + H + '" style="stroke: var(--text)" stroke-width="1" stroke-dasharray="4 4"></line>';
     $('svg').innerHTML = svg;
 
     let ov = '';
@@ -682,6 +771,28 @@
     try { await navigator.clipboard.writeText(url); toast('Link copied. It opens with these numbers.'); }
     catch (e) { toast('Couldn’t copy. The link in the address bar carries these numbers.'); }
   });
+
+  // Theme toggle. The page follows the device setting (or the claude.ai viewer's stamp) until someone
+  // presses the toggle; that choice is saved on this device and applied before paint on the next visit.
+  const THEME_KEY = 'tfsc-theme';
+  const currentTheme = () => getComputedStyle(document.documentElement).getPropertyValue('--mode').trim() === 'light' ? 'light' : 'dark';
+  function syncThemeUI() {
+    const t = currentTheme(), next = t === 'dark' ? 'light' : 'dark', btn = $('theme');
+    btn.dataset.mode = t;
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' theme');
+    btn.title = 'Switch to ' + next + ' theme';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+  }
+  $('theme').addEventListener('click', () => {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    syncThemeUI();
+  });
+  try { matchMedia('(prefers-color-scheme: light)').addEventListener('change', syncThemeUI); } catch (e) {}
+  new MutationObserver(syncThemeUI).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  syncThemeUI();
 
   (function fromHash() {
     const m = new URLSearchParams(location.hash.slice(1));
