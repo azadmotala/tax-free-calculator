@@ -26,16 +26,17 @@
   button { font: inherit; color: inherit; }
   .page { max-width: 1440px; margin: 0 auto; }
 
-  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 52px; padding: 8px clamp(16px, 4.4vw, 64px); border-bottom: 1px solid var(--line); }
-  .brand { font-family: var(--disp); font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 64px; padding: 10px clamp(16px, 4.4vw, 64px); border-bottom: 1px solid var(--line); }
+  .brand { font-family: var(--disp); font-weight: 500; font-size: 20px; letter-spacing: -0.01em; }
   .seg { display: flex; gap: 2px; padding: 3px; background: var(--surface); border-radius: 999px; }
-  .seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font-weight: 500; font-size: 12px; padding: 6px 16px; border-radius: 999px; cursor: pointer; min-height: 30px; }
+  .seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font-weight: 500; font-size: 14px; padding: 0 18px; border-radius: 999px; cursor: pointer; min-height: 34px; }
+  .seg button:hover { color: var(--text); }
   .seg button[aria-pressed="true"] { background: var(--line); color: var(--text); }
   .seg button:focus-visible, .share:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .share { appearance: none; border: 0; display: inline-flex; align-items: center; height: 32px; padding: 0 16px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 500; cursor: pointer; }
+  .share { appearance: none; border: 0; display: inline-flex; align-items: center; height: 40px; padding: 0 20px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 500; cursor: pointer; }
 
   .wrap { padding: 0 clamp(16px, 4.4vw, 64px) 40px; }
-  .sentence { margin: 22px 0 0; font-family: var(--disp); font-weight: 300; font-size: clamp(20px, 1.9vw, 27px); line-height: 1.35; letter-spacing: -0.01em; max-width: 1312px; text-wrap: pretty; }
+  .sentence { margin: 16px 0 0; font-family: var(--disp); font-weight: 300; font-size: clamp(20px, 1.9vw, 27px); line-height: 1.35; letter-spacing: -0.01em; max-width: 1312px; text-wrap: pretty; }
   .num { display: inline-block; color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; text-align: left; text-decoration: underline; text-decoration-style: dotted; text-decoration-thickness: 1.5px; text-underline-offset: 7px; cursor: ew-resize; user-select: none; -webkit-user-select: none; touch-action: none; border-radius: 4px; padding: 0 1px; outline: none; }
   .num[data-key="age"], .num[data-key="until"], .num[data-key="end"] { min-width: 2ch; }
   .num[data-key="startYear"] { min-width: 4ch; }
@@ -69,7 +70,7 @@
   .phase { position: absolute; top: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); pointer-events: none; white-space: nowrap; }
   .tip .v { font-family: var(--mono); font-size: 20px; color: var(--white); font-variant-numeric: tabular-nums; }
   .tip .s { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-  .tip .note { max-width: 250px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-2); font-size: 12px; line-height: 1.45; color: var(--text); }
+  .tip .note { max-width: 380px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-2); font-size: 12px; line-height: 1.45; color: var(--text); }
   .tip .note strong { color: var(--accent); font-weight: 500; }
   .dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 6px; background: var(--bg); border: 2px solid var(--text); pointer-events: none; }
   .axis { position: absolute; left: 0; right: 0; top: 266px; height: 38px; }
@@ -146,6 +147,10 @@
     .chart { margin-top: 20px; height: 344px; } .chart svg { height: 300px; } .axis { top: 306px; }
     .tiles { margin-top: 22px; } .tile { min-height: 112px; padding: 18px 20px; }
     .foot { margin-top: 24px; }
+    .top { min-height: 72px; }
+    .brand { font-size: 22px; }
+    .seg button { font-size: 15px; min-height: 38px; padding: 0 20px; }
+    .share { height: 44px; font-size: 15px; padding: 0 22px; }
   }
   @media (prefers-reduced-motion: reduce) { .toast, td { transition: none; } }
 </style>
@@ -253,6 +258,7 @@
   let active = new Set();
   let scrub = -1;
   let base = null;
+  let curves = [];
 
   const $ = id => document.getElementById(id);
   const NB = ' ';
@@ -358,6 +364,7 @@
     const x = i => n > 1 ? i / (n - 1) * W : 0, y = v => H - v / yMax * H;
     const xa = age => x(age - S.age);
     const pts = base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.closing).toFixed(1));
+    curves = [base.rows.map(r => [x(r.i), y(r.closing)])].concat(extras.map(e => e.s.rows.map(r => [xa(r.age), y(r.closing)])));
     let svg = '';
     for (let v = step; v <= yMax + 1e-6; v += step) svg += '<line x1="0" x2="' + W + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#1f262d" stroke-width="1"></line>';
     svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#1f262d" stroke-width="1"></line>';
@@ -437,12 +444,52 @@
       const left = base.n - 1 - r.i;
       note += '<div class="note"><strong>Halfway there.</strong> The balance has just passed half of the ' + fmtShort(base.final) + ' you end with. It took ' + (r.i + 1) + ' years to get here. The last ' + left + (left === 1 ? ' year adds' : ' years add') + ' as much again, because there’s so much more money earning now.</div>';
     }
-    tip.innerHTML = '<div class="cap">' + r.year + ' · age ' + r.age + '</div><div class="v">' + fmtBig(r.closing) + '</div><div class="s">' + fmtBig(r.growth, true) + ' this year · ' + dep + '</div>' + note;
-    const tw = tip.offsetWidth || 200;
-    const left = px + 14 + tw > W ? px - 14 - tw : px + 14;
-    tip.style.left = Math.max(0, left) + 'px';
-    const th = tip.offsetHeight || 96;
-    tip.style.top = Math.min(H - th, Math.max(28, py - 90)) + 'px';
+    tip.innerHTML = '<div class="cap">' + r.year + ' · age ' + r.age + '</div><div class="v">' + fmtBig(r.closing) + '</div><div class="s">' + fmtBig(r.growth, true) + ' growth this year</div><div class="s">' + dep + '</div>' + note;
+    tip.style.left = '0px'; tip.style.top = '0px';
+    const tw = tip.offsetWidth || 200, th = tip.offsetHeight || 96;
+    const pos = placeCard(px, py, tw, th, W, H);
+    tip.style.left = pos.l + 'px';
+    tip.style.top = pos.t + 'px';
+  }
+
+  // Picks where the scrubber card goes: either side of the scrubber, above or below the dot, or
+  // pinned to the top or bottom of the chart. Each spot is scored by how much of any drawn line
+  // would run behind the card; the clearest spot wins, with a small preference for right and above.
+  function placeCard(px, py, tw, th, W, H) {
+    const GAP = 14, TOP = 28, PAD = 8, bottom = H - th;
+    const sides = [{ l: px + GAP, pref: 0 }, { l: px - GAP - tw, pref: 1 }];
+    const rows = [{ t: py - th - GAP, pref: 0 }, { t: py + GAP, pref: 0.5 }, { t: TOP, pref: 1 }, { t: bottom, pref: 1.5 }];
+    const cands = [];
+    for (const s of sides) for (const rw of rows) cands.push({ l: s.l, t: rw.t, pref: s.pref + rw.pref });
+    // Farther spots along the top and bottom edges, for when a diagonal curve fills the band beside
+    // the scrubber. They cost more the farther they sit from it.
+    for (let l = 48; l + tw <= W; l += 24) for (const t of [TOP, bottom]) cands.push({ l, t, pref: 3 + Math.abs(l + tw / 2 - px) / W * 4 });
+    let best = null;
+    for (const cd of cands) {
+      if (cd.l < 0 || cd.l + tw > W) continue;
+      if (cd.l - 6 <= px && px <= cd.l + tw + 6) continue;
+      const t = Math.min(bottom, Math.max(TOP, cd.t));
+      const rect = { l: cd.l - PAD, r: cd.l + tw + PAD, t: t - PAD, b: t + th + PAD };
+      const score = lineHits(rect) * 10 + cd.pref + (cd.l < 48 ? 2 : 0);
+      if (!best || score < best.score) best = { l: cd.l, t, score };
+    }
+    if (!best) best = { l: Math.max(0, Math.min(W - tw, px + GAP)), t: Math.min(bottom, Math.max(TOP, py - th - GAP)) };
+    return best;
+  }
+  function lineHits(rect) {
+    let hits = 0;
+    for (const c of curves) {
+      for (let k = 0; k + 1 < c.length; k++) {
+        const x1 = c[k][0], y1 = c[k][1], x2 = c[k + 1][0], y2 = c[k + 1][1];
+        if (x2 < rect.l || x1 > rect.r) continue;
+        const steps = Math.max(1, Math.ceil((x2 - x1) / 4));
+        for (let s = 0; s <= steps; s++) {
+          const xx = x1 + (x2 - x1) * s / steps, yy = y1 + (y2 - y1) * s / steps;
+          if (xx >= rect.l && xx <= rect.r && yy >= rect.t && yy <= rect.b) hits++;
+        }
+      }
+    }
+    return hits;
   }
 
   function renderTable() {
