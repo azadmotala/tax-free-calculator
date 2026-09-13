@@ -128,6 +128,14 @@
     .chart { height: 284px; } .chart svg { height: 240px; } .axis { top: 246px; }
     .list .row { grid-template-columns: minmax(0, 1fr) auto; } .list .row .delta { grid-column: 2; }
   }
+  @media (min-height: 1060px) and (min-width: 1100px) {
+    .sentence { font-size: 30px; margin-top: 24px; }
+    .big { font-size: 88px; }
+    .hero { margin-top: 22px; }
+    .chart { margin-top: 20px; height: 344px; } .chart svg { height: 300px; } .axis { top: 306px; }
+    .tiles { margin-top: 22px; } .tile { min-height: 112px; padding: 18px 20px; }
+    .foot { margin-top: 24px; }
+  }
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 </style>
 
@@ -400,12 +408,14 @@
     svg += '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="#1f262d" stroke-width="1"></line>';
     svg += '<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6b8" stop-opacity="0.28"></stop><stop offset="1" stop-color="#6fd6b8" stop-opacity="0"></stop></linearGradient>'
         + '<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#e9ecef" fill-opacity="0.05"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#e9ecef" stroke-opacity="0.42" stroke-width="1.2"></line></pattern></defs>';
-    const u = base.untilIdx, xu = x(u).toFixed(1);
-    const ptsSave = pts.slice(0, u + 1), ptsDraw = pts.slice(u);
-    svg += '<path d="M' + ptsSave.join(' L') + ' L' + xu + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
-    if (u < n - 1) {
+    const u = base.untilIdx, xu = x(u).toFixed(1), drawing = S.rate > 0 && u < n - 1;
+    const ptsSave = drawing ? pts.slice(0, u + 1) : pts, ptsDraw = pts.slice(u);
+    svg += '<path d="M' + ptsSave.join(' L') + ' L' + (drawing ? xu : W) + ',' + H + ' L0,' + H + ' Z" fill="url(#fade)"></path>';
+    if (drawing) {
       svg += '<path d="M' + ptsDraw.join(' L') + ' L' + W + ',' + H + ' L' + xu + ',' + H + ' Z" fill="url(#hatch)"></path>';
       svg += '<line x1="' + xu + '" x2="' + xu + '" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1"></line>';
+    } else if (u < n - 1) {
+      svg += '<line x1="' + xu + '" x2="' + xu + '" y1="0" y2="' + H + '" stroke="#3a444d" stroke-width="1" stroke-dasharray="3 5"></line>';
     }
     svg += '<path d="M' + base.rows.map(r => x(r.i).toFixed(1) + ',' + y(r.cum).toFixed(1)).join(' L') + '" fill="none" stroke="#3a444d" stroke-width="1.5" stroke-dasharray="2 5"></path>';
     for (const e of extras) {
@@ -413,7 +423,7 @@
       svg += '<path d="M' + p.join(' L') + '" fill="none" stroke="#7b858e" stroke-width="1.5" stroke-dasharray="' + e.sc.dash + '"></path>';
     }
     svg += '<path d="M' + ptsSave.join(' L') + '" fill="none" stroke="#6fd6b8" stroke-width="2.5" stroke-linejoin="round"></path>';
-    if (u < n - 1) svg += '<path d="M' + ptsDraw.join(' L') + '" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linejoin="round"></path>';
+    if (drawing) svg += '<path d="M' + ptsDraw.join(' L') + '" fill="none" stroke="#e9ecef" stroke-width="2" stroke-linejoin="round"></path>';
     for (const i of [base.outpace, base.limit, base.half, base.draw]) if (i >= 0) svg += '<line x1="' + x(i).toFixed(1) + '" x2="' + x(i).toFixed(1) + '" y1="' + y(base.rows[i].closing).toFixed(1) + '" y2="' + H + '" stroke="#7b858e" stroke-width="1"></line>';
     svg += '<line id="scrubLine" x1="0" x2="0" y1="0" y2="' + H + '" stroke="#e9ecef" stroke-width="1" stroke-dasharray="4 4"></line>';
     $('svg').innerHTML = svg;
@@ -421,7 +431,7 @@
     let ov = '';
     for (let v = step; v <= yMax + 1e-6; v += step) ov += '<div class="ylab" style="top:' + (y(v) - 14).toFixed(1) + 'px">' + fmtTick(v) + '</div>';
     ov += '<div class="phase" style="left:' + (x(u) * 0.5).toFixed(1) + 'px; transform: translateX(-50%)">Saving · ' + S.age + ' to ' + S.until + '</div>';
-    if (u < n - 1) ov += '<div class="phase" style="left:' + ((x(u) + W) / 2).toFixed(1) + 'px; transform: translateX(-50%)">' + (S.rate > 0 ? 'Drawing ' + fmtPct(S.rate) + ' a year' : 'Untouched') + ' · ' + (S.until + 1) + ' to ' + S.end + '</div>';
+    if (u < n - 1) ov += '<div class="phase" style="left:' + ((x(u) + W) / 2).toFixed(1) + 'px; transform: translateX(-50%)">' + (drawing ? 'Drawing ' + fmtPct(S.rate) + ' a year' : 'Left to grow') + ' · ' + (S.until + 1) + ' to ' + S.end + '</div>';
     for (const e of extras) { const lastRow = e.s.rows[e.s.rows.length - 1]; ov += '<div class="endlab" style="left:' + W + 'px; top:' + y(lastRow.closing).toFixed(1) + 'px">' + e.sc.label + ' · ' + fmtShort(e.s.final) + '</div>'; }
     $('overlay').innerHTML = ov;
 
@@ -454,7 +464,7 @@
     const line = $('scrubLine'); if (line) { line.setAttribute('x1', px.toFixed(1)); line.setAttribute('x2', px.toFixed(1)); }
     const dot = $('dot'); dot.style.left = px + 'px'; dot.style.top = py + 'px';
     const tip = $('tip');
-    tip.classList.toggle('draw', r.i > base.untilIdx);
+    tip.classList.toggle('draw', r.withdrawal > 0);
     const since = base.limit >= 0 && r.i > base.limit ? r.i - base.limit : 0;
     let dep = r.deposit > 0 ? fmtR(r.deposit) + ' deposited' : since > 0 ? 'deposits stopped ' + since + ' yr' + (since > 1 ? 's' : '') + ' ago' : 'no deposit';
     if (r.withdrawal > 0) dep = fmtBig(-r.withdrawal) + ' drawn (' + fmtBig(r.withdrawal / 12) + ' a month)';
