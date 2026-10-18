@@ -142,6 +142,13 @@ describe('Withdrawals', () => {
   test('590-B: a withdrawal that is not qualified may owe "the 10% additional tax" - the rate is recorded for the warning', () => {
     assert.equal(M.LIMIT.earlyPenalty, 0.1);
   });
+  test('590-B lists "You have reached age 59 1/2" as an exception to the 10% tax - so the five-year rule alone means tax but no penalty', () => {
+    const late = M.simulate(plan({ age: 62, until: 63, end: 80 })).early;
+    assert.equal(late.tooSoon, true);
+    assert.equal(late.tooYoung, false, 'the warning leaves out the penalty for this plan');
+    const young = M.simulate(plan({ until: 55 })).early;
+    assert.equal(young.tooYoung, true, 'and includes it for withdrawals before 59 1/2');
+  });
 });
 
 describe('Comparison and default plan', () => {

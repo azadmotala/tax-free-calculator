@@ -23,13 +23,13 @@
         const risesWithIrs = M.bandFor(S.startYear).limit < LATEST.limit;
         // Whether any deposit year will qualify for the catch-up (50 or over, from 2002).
         const catchUpLater = c.base.rows.some(r => r.planned > 0 && r.age >= CATCH_UP_AGE && M.bandFor(r.year).catchUp > 0);
-        let s = 'IRS limit for ' + S.startYear + ': ' + c.fmtR(lim) + ' a year' + (older ? ' with the catch-up for ' + CATCH_UP_AGE + ' and over' : '');
+        let s = 'IRS limit for ' + S.startYear + ': ' + c.fmtR(lim) + ' a year' + (older ? ', including the catch-up for ' + CATCH_UP_AGE + ' and over' : '');
         if (c.base.atMax && risesWithIrs) {
-          s += ' &middot; you&rsquo;re at it, so your deposit follows it up to ' + c.fmtR(LATEST.limit + (older ? LATEST.catchUp : 0)) + ' in ' + LATEST.from +
+          s += ' &middot; you&rsquo;re maxing it out, so your deposit follows the limit up to ' + c.fmtR(LATEST.limit + (older ? LATEST.catchUp : 0)) + ' in ' + LATEST.from +
             (catchUpLater && !older ? ', plus the catch-up for ' + CATCH_UP_AGE + ' and over' : '');
         } else if (c.base.atMax && reaches50) {
           const yearAt50 = S.startYear + CATCH_UP_AGE - S.age;
-          s += ' &middot; you&rsquo;re at it, so your deposit rises to ' + c.fmtR(c.limitFor(yearAt50, CATCH_UP_AGE)) + ' at ' + CATCH_UP_AGE;
+          s += ' &middot; you&rsquo;re maxing it out, so your deposit rises to ' + c.fmtR(c.limitFor(yearAt50, CATCH_UP_AGE)) + ' at ' + CATCH_UP_AGE;
         } else if (S.age < CATCH_UP_AGE && hasCatchUp) {
           s += ', ' + c.fmtR(c.limitFor(S.startYear, CATCH_UP_AGE)) + ' from ' + CATCH_UP_AGE;
         }
@@ -39,16 +39,21 @@
       drawCap(c) {
         return 'From ' + (c.S.until + 1) + ' · a month' + (c.base.early ? '' : ', tax-free');
       },
+      // Withdrawals that aren't qualified owe tax on the growth taken out. The 10% penalty only applies
+      // under 59 1/2: Publication 590-B lists "You have reached age 59 1/2" as an exception to it.
       drawNote(c) {
         const e = c.base.early;
         if (!e) return '';
-        const why = e.tooYoung && e.tooSoon ? 'before 59½ or within five years of your first deposit'
-          : e.tooYoung ? 'before 59½' : 'within five years of your first deposit';
-        const lead = e.years === 1 ? 'The first year here comes ' : 'The first ' + e.years + ' years here come ';
-        return lead + why + ', so the growth you take out then can owe tax plus a 10% penalty.';
+        const lead = e.years === 1 ? 'Your first year of withdrawals comes ' : 'Your first ' + e.years + ' years of withdrawals come ';
+        const why = e.tooYoung && e.tooSoon ? 'before 59½ or within five tax years of your first deposit'
+          : e.tooYoung ? 'before 59½' : 'within five tax years of your first deposit';
+        const owe = e.tooYoung && e.tooSoon ? 'so you could owe tax on the growth you take out, plus a 10% penalty while you’re under 59½.'
+          : e.tooYoung ? 'so you could owe tax and a 10% penalty on the growth you take out.'
+          : 'so you could owe tax on the growth you take out.';
+        return lead + why + ', ' + owe;
       },
       taxableTile(c, tax) {
-        return 'The same money in a regular brokerage account ends near ' + c.fmtShort(tax.final) + ' once tax on dividends and gains is paid.';
+        return 'The same money in a regular brokerage account ends near ' + c.fmtShort(tax.final) + ' once you’ve paid tax on the dividends and gains.';
       }
     }
   };
