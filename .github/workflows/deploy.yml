@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   test:
-    name: SARS rules
+    name: SARS and IRS rules
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
         run: |
           mkdir _site
           cp index.html model.js config.js manifest.webmanifest _site/
-          cp -r icons shared _site/
+          cp -r icons shared us _site/
       - name: Check every file the pages use was collected
         run: node scripts/check-site.js _site
       - uses: actions/configure-pages@v5

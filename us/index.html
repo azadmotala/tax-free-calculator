@@ -1,0 +1,104 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1115">
+<link rel="icon" href="../icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Roth IRA">
+<script>
+  // Apply a saved theme choice before the page paints, so it never flashes the other theme first.
+  (function () {
+    try {
+      var t = localStorage.getItem('tfsc-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
+<title>Roth IRA Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700&family=DM+Sans:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../shared/calculator.css">
+
+<div class="page">
+  <header class="top">
+    <div class="brand">Roth IRA calculator</div>
+    <div class="seg" role="group" aria-label="View">
+      <button type="button" data-view="plan" aria-pressed="true">Plan</button>
+      <button type="button" data-view="table" aria-pressed="false">Year by year</button>
+      <button type="button" data-view="whatif" aria-pressed="false">What if</button>
+    </div>
+    <div class="actions">
+      <a class="country" href="../index.html" aria-label="US Roth IRA calculator. Switch to the South African calculator" title="Switch to the South African calculator"><span class="flag"><svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#ffffff"></rect><path fill="#b22234" d="M0 0h30v1.54H0zM0 3.08h30v1.54H0zM0 6.15h30v1.54H0zM0 9.23h30v1.54H0zM0 12.31h30v1.54H0zM0 15.38h30v1.54H0zM0 18.46h30v1.54H0z"></path><rect width="12" height="10.77" fill="#3c3b6e"></rect><g fill="#ffffff"><circle cx="1.5" cy="1.8" r="0.6"></circle><circle cx="4.5" cy="1.8" r="0.6"></circle><circle cx="7.5" cy="1.8" r="0.6"></circle><circle cx="10.5" cy="1.8" r="0.6"></circle><circle cx="3" cy="5.4" r="0.6"></circle><circle cx="6" cy="5.4" r="0.6"></circle><circle cx="9" cy="5.4" r="0.6"></circle><circle cx="1.5" cy="9.0" r="0.6"></circle><circle cx="4.5" cy="9.0" r="0.6"></circle><circle cx="7.5" cy="9.0" r="0.6"></circle><circle cx="10.5" cy="9.0" r="0.6"></circle></g></svg></span></a>
+      <button type="button" class="theme" id="theme" aria-label="Switch to light theme" title="Switch to light theme">
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
+      </button>
+      <button type="button" class="share" id="share" aria-label="Share plan"><svg class="share-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"></path></svg><span class="share-text">Share<span class="wide-only"> plan</span></span></button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="sentence" id="sentence">I&rsquo;m <span class="num" data-key="age" tabindex="0" role="spinbutton" aria-label="Your age now"></span>. From <span class="num" data-key="startYear" tabindex="0" role="spinbutton" aria-label="Start year"></span> I&rsquo;ll add <span class="num" data-key="contrib" tabindex="0" role="spinbutton" aria-label="Deposit each year"></span> a year, earning <span class="num" data-key="gross" tabindex="0" role="spinbutton" aria-label="Return before fees"></span> before <span class="num" data-key="fees" tabindex="0" role="spinbutton" aria-label="Fees"></span> in fees, and I&rsquo;ll leave it until I&rsquo;m <span class="num" data-key="until" tabindex="0" role="spinbutton" aria-label="Age you stop"></span>.</p>
+    <p class="sentence second" id="sentence2">After that I&rsquo;ll draw <span class="num" data-key="rate" tabindex="0" role="spinbutton" aria-label="Yearly withdrawal as a share of the balance"></span> a year until I&rsquo;m <span class="num" data-key="end" tabindex="0" role="spinbutton" aria-label="Age the plan runs to"></span>. <span class="summary" id="drawSummary"></span></p>
+    <div class="cap hint" id="hint"></div>
+
+    <section class="hero" aria-live="polite">
+      <div class="hero-block save">
+        <div class="cap" id="heroCap"></div>
+        <div class="big" id="heroValue"></div>
+        <div class="readouts">
+          <div class="readout"><div class="cap">You put in</div><div class="mono" id="rPutIn"></div></div>
+          <div class="readout accent"><div class="cap">Growth</div><div class="mono" id="rGrowth"></div></div>
+          <div class="readout"><div class="cap">Every $1 becomes</div><div class="mono" id="rMultiple"></div></div>
+          <div class="readout"><div class="cap">Tax you&rsquo;d have paid</div><div class="mono" id="rTax"></div></div>
+        </div>
+      </div>
+      <div class="hero-block draw">
+        <div class="cap" id="drawCap"></div>
+        <div class="big" id="drawValue"></div>
+        <div class="readouts">
+          <div class="readout"><div class="cap">A year</div><div class="mono" id="rYear"></div></div>
+          <div class="readout"><div class="cap" id="rDrawnCap">Drawn in total</div><div class="mono" id="rDrawn"></div></div>
+          <div class="readout"><div class="cap" id="rLeftCap">Left at the end</div><div class="mono" id="rLeft"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="chart" id="chart" aria-label="Fund value by age">
+      <svg id="svg" aria-hidden="true"></svg>
+      <div id="overlay"></div>
+      <div class="dot" id="dot"></div>
+      <div class="tip" id="tip"></div>
+      <div class="axis" id="axis"></div>
+    </section>
+    <div class="tipdock" id="tipdock" aria-live="polite"></div>
+
+    <section class="tiles" id="tiles">
+      <div class="tile"><div class="cap">The cost of waiting one year</div><div><div class="n" id="tWait"></div><div class="t" id="tWaitT"></div></div></div>
+      <div class="tile"><div class="cap">The cost of 1% more in fees</div><div><div class="n" id="tFees"></div><div class="t" id="tFeesT"></div></div></div>
+      <div class="tile accent"><div class="cap">What a Roth saves you</div><div><div class="n" id="tWrap"></div><div class="t" id="tWrapT"></div></div></div>
+    </section>
+
+    <section class="panel" id="whatif" hidden>
+      <div class="chips" id="chips" role="group" aria-label="Scenarios"></div>
+      <div class="list" id="scenList"></div>
+    </section>
+
+    <section id="table" hidden>
+      <div class="tablewrap" id="tablewrap" tabindex="0" role="region" aria-label="Year by year table. Use the arrow keys to move between years.">
+        <table>
+          <thead><tr><th>Age</th><th>Year</th><th>Deposit</th><th>Total deposited</th><th>Opening</th><th>Withdrawn</th><th>Growth</th><th>Closing</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="cap tablehint"><span class="mouse-only">Click a year, or use the arrow keys, to park on it.</span><span class="touch-only">Tap a year to park on it.</span> The chart&rsquo;s scrubber stays on the same year.</div>
+    </section>
+
+    <details class="cap foot"><summary>How it calculates</summary><p>Each deposit goes in at the start of the year and grows once a year at your return minus fees. Withdrawals start the year after you stop adding, each one a fixed share of that year's opening balance, taken before growth. IRA limits follow the year of each deposit: $5,500 from 2015, $6,000 from 2019, $6,500 in 2023, $7,000 in 2024 and 2025 and $7,500 from 2026, plus a catch-up of $1,000 from age 50, or $1,100 from 2026. Later years keep the 2026 limits. The limit covers all your IRAs together, and you can&rsquo;t put in more than you earn. The page assumes your income is low enough to contribute in full: for 2026, contributions start shrinking at $153,000 for single filers and $242,000 for joint filers. Withdrawals are tax-free once you&rsquo;re 59&frac12; and five years have passed since your first deposit. Earlier ones can owe tax on the growth plus a 10% penalty, which the page doesn&rsquo;t work out. The regular-account comparison assumes a 1.5% dividend yield and 15% federal tax on dividends and on gains when you sell, and leaves out state tax.</p></details>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script src="model.js"></script>
+<script src="config.js"></script>
+<script src="../shared/calculator.js"></script>

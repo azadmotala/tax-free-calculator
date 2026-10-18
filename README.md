@@ -2,7 +2,9 @@
 
 **Live site:** https://azadmotala.github.io/tax-free-calculator/
 
-A calculator for South African tax-free savings accounts. Your plan is a sentence: drag the numbers in it, or click to type, and the page redraws the balance year by year, marks the milestones along the way, and shows what each choice costs.
+**US Roth IRA version:** https://azadmotala.github.io/tax-free-calculator/us/
+
+A calculator for South African tax-free savings accounts, with a US version for Roth IRAs. The flag in the header switches between them. Your plan is a sentence: drag the numbers in it, or click to type, and the page redraws the balance year by year, marks the milestones along the way, and shows what each choice costs.
 
 ## What it shows
 
@@ -17,9 +19,16 @@ A calculator for South African tax-free savings accounts. Your plan is a sentenc
 - SARS annual limits follow the year of each deposit: R30 000 from March 2015, R33 000 from March 2017, R36 000 from March 2020 and R46 000 from March 2026, with a R500 000 lifetime limit. A plan at the limit follows it as it rises.
 - The ordinary-account comparison assumes a 3% dividend yield taxed at 20% and 18% capital gains tax when you cash out.
 
+The US version follows the same method with IRS rules:
+
+- IRA limits follow the year of each deposit: $5,500 from 2015, $6,000 from 2019, $6,500 in 2023, $7,000 in 2024 and 2025, and $7,500 from 2026, plus a catch-up from age 50 ($1,000, or $1,100 from 2026). There's no lifetime limit. Years after 2026 keep the 2026 limits.
+- It assumes income below the Roth phase-out and earnings at least equal to the deposits.
+- Withdrawals are treated as tax-free. The page flags any taken before 59½ or within five years of the first deposit, which can owe tax on growth plus a 10% penalty.
+- The brokerage-account comparison assumes a 1.5% dividend yield and 15% federal tax on dividends and gains, and leaves out state tax.
+
 ## Tests
 
-The SARS rules are written up as tests in `test/sars-rules.test.js`, each one quoting the rule it checks from the [SARS Tax Free Investments page](https://www.sars.gov.za/types-of-tax/personal-income-tax/tax-free-investments/) or the [Budget 2026 FAQ](https://www.sars.gov.za/about/sars-tax-and-customs-system/budget/budget-2026-frequently-asked-questions/). They run against `model.js`, the same file the page uses, with no dependencies:
+The SARS rules are written up as tests in `test/sars-rules.test.js`, each one quoting the rule it checks from the [SARS Tax Free Investments page](https://www.sars.gov.za/types-of-tax/personal-income-tax/tax-free-investments/) or the [Budget 2026 FAQ](https://www.sars.gov.za/about/sars-tax-and-customs-system/budget/budget-2026-frequently-asked-questions/). The IRS rules are in `test/irs-rules.test.js`, quoting [IRA contribution limits](https://www.irs.gov/retirement-plans/plan-participant-employee/retirement-topics-ira-contribution-limits), the [IRA FAQs](https://www.irs.gov/retirement-plans/retirement-plans-faqs-regarding-iras), the [2026 limits release](https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500) and [Publication 590-B](https://www.irs.gov/publications/p590b). Both run against the same model files the pages use, with no dependencies:
 
 ```bash
 node --test
@@ -35,6 +44,7 @@ The interface is shared, so another country's page can reuse it. Each country br
 - `index.html` is the South African page: its wording, labels and footer.
 - `model.js` holds the SARS rules. The page and the tests both use it.
 - `config.js` gives the shared interface the rand formatting and the wording that depends on SARS rules, like the limits in the hint and the lifetime-limit note.
+- `us/` holds the US page in the same three parts: `index.html`, `model.js` with the IRS rules, and `config.js` with dollar formatting and the IRS wording.
 
 ## Updating
 

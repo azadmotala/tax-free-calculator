@@ -3,13 +3,17 @@
  * What if scenarios, theme toggle and share link. A country page sets window.TFSC_CONFIG before this
  * file loads:
  *
- *   model   the rules, with FIELDS, DEFAULTS, limitFor, clampState, simulate and simulateTaxable
- *   money   { symbol, group }: the currency symbol and the thousands separator
+ *   model   the rules, with FIELDS, DEFAULTS, limitFor(year, age), clampState, simulate and
+ *           simulateTaxable
+ *   money   { symbol, group, units }: the currency symbol, the thousands separator, and optionally
+ *           the suffixes for thousands, millions, billions and trillions (default k, m, bn, tn)
  *   text    the country's own wording, each a function of the current plan (see config.js):
  *             limits(c)            the rules summary that follows the hint, as HTML
  *             lifetimeMilestone    the label for the year the lifetime limit is reached
  *             lifetimeNote(c, r)   the scrubber card note for that year, as HTML
  *             taxableTile(c, tax)  the text under the tile comparing with an ordinary account
+ *             drawCap(c)           optional: the label above the monthly income
+ *             drawNote(c)          optional: a sentence added after the drawdown summary
  *
  * The page's markup (sentence wording, labels, table headings, footer) lives in each page's HTML.
  */
@@ -47,23 +51,24 @@
 
   const $ = id => document.getElementById(id);
   const CUR = CFG.money.symbol, GROUP = CFG.money.group;
+  const UNIT = Object.assign({ k: 'k', m: 'm', bn: 'bn', tn: 'tn' }, CFG.money.units || {});
   function group(n) { return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, GROUP); }
   function fmtR(n, sign) { const s = n < 0 ? '\u2212' : (sign && n > 0 ? '+' : ''); return s + CUR + group(n); }
   function fmtShort(n) {
     const a = Math.abs(n), s = n < 0 ? '\u2212' : '';
-    if (a >= 1e12) return s + CUR + (a / 1e12).toFixed(2) + 'tn';
-    if (a >= 1e9) return s + CUR + (a / 1e9).toFixed(a >= 1e11 ? 0 : 1) + 'bn';
-    if (a >= 1e6) return s + CUR + (a / 1e6).toFixed(2) + 'm';
-    if (a >= 1e4) return s + CUR + Math.round(a / 1e3) + 'k';
+    if (a >= 1e12) return s + CUR + (a / 1e12).toFixed(2) + UNIT.tn;
+    if (a >= 1e9) return s + CUR + (a / 1e9).toFixed(a >= 1e11 ? 0 : 1) + UNIT.bn;
+    if (a >= 1e6) return s + CUR + (a / 1e6).toFixed(2) + UNIT.m;
+    if (a >= 1e4) return s + CUR + Math.round(a / 1e3) + UNIT.k;
     return s + CUR + group(a);
   }
   function fmtBig(n, sign) { return Math.abs(n) >= 1e7 ? (sign && n > 0 ? '+' : '') + fmtShort(n) : fmtR(n, sign); }
   function trim(x) { return Number.isInteger(x) ? String(x) : String(Number(x.toFixed(1))); }
   function fmtTick(v) {
-    if (v >= 1e12) return CUR + trim(v / 1e12) + 'tn';
-    if (v >= 1e9) return CUR + trim(v / 1e9) + 'bn';
-    if (v >= 1e6) return CUR + trim(v / 1e6) + 'm';
-    if (v >= 1e3) return CUR + Math.round(v / 1e3) + 'k';
+    if (v >= 1e12) return CUR + trim(v / 1e12) + UNIT.tn;
+    if (v >= 1e9) return CUR + trim(v / 1e9) + UNIT.bn;
+    if (v >= 1e6) return CUR + trim(v / 1e6) + UNIT.m;
+    if (v >= 1e3) return CUR + Math.round(v / 1e3) + UNIT.k;
     return CUR + Math.round(v);
   }
   function fmtPct(v) { return v.toFixed(2) + '%'; }
@@ -93,11 +98,13 @@
     const drawYears = base.n - 1 - base.untilIdx;
     if (S.rate > 0) $('drawSummary').textContent = 'That\u2019s ' + fmtBig(base.firstDraw / 12) + ' a month to start, ' + fmtBig(base.drawn) + ' drawn over ' + drawYears + (drawYears === 1 ? ' year' : ' years') + ', and ' + fmtShort(base.endValue) + ' still there at ' + S.end + '.';
     else $('drawSummary').textContent = 'Nothing comes out, so it keeps growing to ' + fmtShort(base.endValue) + ' at ' + S.end + '.';
+    const drawNote = CFG.text.drawNote ? CFG.text.drawNote(ctx()) : '';
+    if (drawNote) $('drawSummary').textContent += ' ' + drawNote;
     $('rDrawnCap').textContent = 'Drawn over ' + drawYears + (drawYears === 1 ? ' year' : ' years');
     $('rLeftCap').textContent = 'Left at ' + S.end;
     $('rLeft').textContent = fmtBig(base.endValue);
     if (S.rate > 0) {
-      $('drawCap').textContent = 'From ' + (S.until + 1) + ' \u00b7 a month, tax-free';
+      $('drawCap').textContent = CFG.text.drawCap ? CFG.text.drawCap(ctx()) : 'From ' + (S.until + 1) + ' \u00b7 a month, tax-free';
       $('drawValue').textContent = fmtBig(base.firstDraw / 12);
       $('rYear').textContent = fmtBig(base.firstDraw);
       $('rDrawn').textContent = fmtBig(base.drawn);
@@ -248,9 +255,22 @@
       return;
     }
     if (tip.parentNode !== $('chart')) $('chart').insertBefore(tip, $('axis'));
+    tip.classList.remove('narrow');
     tip.style.left = '0px'; tip.style.top = '0px';
-    const tw = tip.offsetWidth || 200, th = tip.offsetHeight || 96;
-    const pos = placeCard(px, py, tw, th, W, H);
+    let tw = tip.offsetWidth || 200, th = tip.offsetHeight || 96;
+    let pos = placeCard(px, py, tw, th, W, H);
+    // If even the best spot leaves a line behind the card, try a narrower, taller card and keep
+    // whichever covers less. Cards that already sit clear are left as they are.
+    const covered = p => lineHits({ l: p.l, r: p.l + tw, t: p.t, b: p.t + th });
+    let hits = covered(pos);
+    if (hits > 0) {
+      const wide = { pos, tw, th };
+      tip.classList.add('narrow');
+      tw = tip.offsetWidth || 200; th = tip.offsetHeight || 96;
+      const pos2 = placeCard(px, py, tw, th, W, H);
+      if (covered(pos2) < hits) pos = pos2;
+      else { tip.classList.remove('narrow'); ({ pos, tw, th } = wide); }
+    }
     tip.style.left = pos.l + 'px';
     tip.style.top = pos.t + 'px';
   }
@@ -380,7 +400,12 @@
     const keepAge = base && scrub >= 0 && base.rows[scrub] ? base.rows[scrub].age : null;
     const o = { ...S, [k]: v };
     if (k === 'age' && o.until <= o.age) o.until = o.age + 1;
-    if (k === 'startYear' && S.contrib >= limitFor(S.startYear)) o.contrib = limitFor(Math.min(FIELDS.startYear.max, Math.max(FIELDS.startYear.min, Math.round(v))));
+    // A plan at its starting limit stays at the limit when the start year or age changes, because the
+    // limit can depend on both (the US adds a catch-up amount from 50). Limits take (year, age).
+    if ((k === 'startYear' || k === 'age') && S.contrib >= limitFor(S.startYear, S.age)) {
+      const c = clampState(o);
+      o.contrib = limitFor(c.startYear, c.age);
+    }
     S = clampState(o);
     const idx = keepAge === null ? -1 : keepAge - S.age;
     scrub = idx >= 0 && idx <= S.end - S.age ? idx : -1;
