@@ -21,7 +21,7 @@ A calculator for South African tax-free savings accounts, with a US version for 
 
 The US version follows the same method with IRS rules:
 
-- IRA limits follow the year of each deposit: $5,500 from 2015, $6,000 from 2019, $6,500 in 2023, $7,000 in 2024 and 2025, and $7,500 from 2026, plus a catch-up from age 50 ($1,000, or $1,100 from 2026). There's no lifetime limit. Years after 2026 keep the 2026 limits.
+- IRA limits follow the year of each deposit, from $2,000 when Roth IRAs began in 1998 to $7,500 from 2026, each checked against that year's IRS Publication 590. From 2002 there's a catch-up for 50 and over: $500, then $1,000 from 2006 and $1,100 from 2026. There's no lifetime limit. Years after 2026 keep the 2026 limits.
 - It assumes income below the Roth phase-out and earnings at least equal to the deposits.
 - Withdrawals are treated as tax-free. The page flags any taken before 59½ or within five years of the first deposit, which can owe tax on growth plus a 10% penalty.
 - The brokerage-account comparison assumes a 1.5% dividend yield and 15% federal tax on dividends and gains, and leaves out state tax.

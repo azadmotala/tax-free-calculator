@@ -11,6 +11,37 @@ const M = require('../us/model.js');
 
 const plan = (o) => M.clampState(Object.assign({}, M.DEFAULTS, o));
 
+describe('Limits before 2015, from each year\'s Publication 590', () => {
+  test('590 (1998): "Beginning in 1998, regardless of your age, you may be able to establish and contribute to a new individual retirement plan called a Roth IRA"', () => {
+    assert.equal(M.FIELDS.startYear.min, 1998);
+    assert.equal(plan({ startYear: 1990 }).startYear, 1998, 'an earlier start year is moved to 1998');
+  });
+  test('590 (1998 to 2001): "for Roth IRAs, the contribution limit is the lesser of $2,000 or your taxable compensation" - and no catch-up yet', () => {
+    for (const y of [1998, 1999, 2000, 2001]) { assert.equal(M.limitFor(y, 30), 2000); assert.equal(M.limitFor(y, 55), 2000); }
+  });
+  test('590 (2002 to 2004): "$3,000 ($3,500 if 50 or older)"', () => {
+    for (const y of [2002, 2003, 2004]) { assert.equal(M.limitFor(y, 30), 3000); assert.equal(M.limitFor(y, 50), 3500); }
+  });
+  test('590 (2005): "$4,000 ($4,500 if you are age 50 or older)"', () => {
+    assert.equal(M.limitFor(2005, 30), 4000); assert.equal(M.limitFor(2005, 50), 4500);
+  });
+  test('590 (2006 and 2007): "$4,000 ($5,000 if you are age 50 or older)"', () => {
+    for (const y of [2006, 2007]) { assert.equal(M.limitFor(y, 30), 4000); assert.equal(M.limitFor(y, 50), 5000); }
+  });
+  test('590 (2008 to 2012): "$5,000 ($6,000 if you are age 50 or older)"', () => {
+    for (const y of [2008, 2009, 2010, 2011, 2012]) { assert.equal(M.limitFor(y, 30), 5000); assert.equal(M.limitFor(y, 50), 6000); }
+  });
+  test('590 (2013) and 590-A (2014): "$5,500 ($6,500 if you are age 50 or older)"', () => {
+    for (const y of [2013, 2014]) { assert.equal(M.limitFor(y, 30), 5500); assert.equal(M.limitFor(y, 50), 6500); }
+  });
+  test('A plan maxed out from 1998 at 45 follows every increase, and gets the catch-up once it exists and they are 50', () => {
+    const rows = M.simulate(plan({ startYear: 1998, age: 45, contrib: 2000, until: 75, end: 76 })).rows;
+    const at = y => rows.find(r => r.year === y).deposit;
+    assert.deepEqual([1998, 2001, 2002, 2003, 2005, 2006, 2008, 2013, 2019, 2023, 2024, 2026].map(at),
+      [2000, 2000, 3000, 3500, 4500, 5000, 6000, 6500, 7000, 7500, 8000, 8600], 'turns 50 in 2003');
+  });
+});
+
 describe('Annual IRA limits by year', () => {
   test('FAQ: "The annual contribution limit for 2015, 2016, 2017 and 2018 is $5,500, or $6,500 if you\'re age 50 or older"', () => {
     for (const y of [2015, 2016, 2017, 2018]) { assert.equal(M.limitFor(y, 30), 5500); assert.equal(M.limitFor(y, 50), 6500); }
@@ -35,7 +66,7 @@ describe('Annual IRA limits by year', () => {
     assert.equal(M.limitFor(2040, 30), 7500); assert.equal(M.limitFor(2040, 55), 8600);
   });
   test('No year is ever allowed a deposit above its own limit for that age, whatever the plan says', () => {
-    for (const startYear of [2015, 2019, 2023, 2024, 2026]) for (const age of [20, 45, 50, 62]) {
+    for (const startYear of [1998, 2002, 2005, 2015, 2019, 2023, 2024, 2026]) for (const age of [20, 45, 50, 62]) {
       const r = M.simulate(plan({ startYear, age, contrib: 99999, until: age + 30, end: age + 31 }));
       for (const row of r.rows) assert.ok(row.deposit <= M.limitFor(row.year, row.age) + 1e-9, row.year + ' at ' + row.age);
     }

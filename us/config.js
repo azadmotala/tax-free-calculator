@@ -15,17 +15,22 @@
       // The rules summary after the hint. A plan at the limit follows the IRS's increases and the
       // catch-up from 50, so say which of those applies.
       limits(c) {
-        const S = c.S, lim = c.limitFor(S.startYear, S.age), older = S.age >= CATCH_UP_AGE;
-        const reaches50 = !older && S.until >= CATCH_UP_AGE;
+        const S = c.S, lim = c.limitFor(S.startYear, S.age);
+        // Before 2002 there was no catch-up, so only mention it when it adds something.
+        const hasCatchUp = M.bandFor(S.startYear).catchUp > 0;
+        const older = S.age >= CATCH_UP_AGE && hasCatchUp;
+        const reaches50 = S.age < CATCH_UP_AGE && S.until >= CATCH_UP_AGE;
         const risesWithIrs = M.bandFor(S.startYear).limit < LATEST.limit;
+        // Whether any deposit year will qualify for the catch-up (50 or over, from 2002).
+        const catchUpLater = c.base.rows.some(r => r.planned > 0 && r.age >= CATCH_UP_AGE && M.bandFor(r.year).catchUp > 0);
         let s = 'IRS limit for ' + S.startYear + ': ' + c.fmtR(lim) + ' a year' + (older ? ' with the catch-up for ' + CATCH_UP_AGE + ' and over' : '');
         if (c.base.atMax && risesWithIrs) {
           s += ' &middot; you&rsquo;re at it, so your deposit follows it up to ' + c.fmtR(LATEST.limit + (older ? LATEST.catchUp : 0)) + ' in ' + LATEST.from +
-            (reaches50 ? ', and ' + c.fmtR(LATEST.limit + LATEST.catchUp) + ' from ' + CATCH_UP_AGE : '');
+            (catchUpLater && !older ? ', plus the catch-up for ' + CATCH_UP_AGE + ' and over' : '');
         } else if (c.base.atMax && reaches50) {
           const yearAt50 = S.startYear + CATCH_UP_AGE - S.age;
           s += ' &middot; you&rsquo;re at it, so your deposit rises to ' + c.fmtR(c.limitFor(yearAt50, CATCH_UP_AGE)) + ' at ' + CATCH_UP_AGE;
-        } else if (!older) {
+        } else if (S.age < CATCH_UP_AGE && hasCatchUp) {
           s += ', ' + c.fmtR(c.limitFor(S.startYear, CATCH_UP_AGE)) + ' from ' + CATCH_UP_AGE;
         }
         return s + ' &middot; no lifetime limit';

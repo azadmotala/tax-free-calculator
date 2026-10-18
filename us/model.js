@@ -10,6 +10,8 @@
  *    https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500
  *  - IRS, Roth IRAs: https://www.irs.gov/retirement-plans/roth-iras
  *  - IRS Publication 590-B, Distributions from IRAs: https://www.irs.gov/publications/p590b
+ *  - IRS Publication 590 for 1998 to 2013 and 590-A for 2014, for the limits in those years:
+ *    https://www.irs.gov/pub/irs-prior/p590--1998.pdf (and --1999 to --2013), p590a--2014.pdf
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -18,10 +20,16 @@
   'use strict';
 
   // IRA limits by tax year: the base amount, and the extra catch-up allowed from age 50. The limit is
-  // the total across all of a person's traditional and Roth IRAs. Years after the last entry keep its
-  // values; the IRS adjusts them for inflation, but the page doesn't guess future increases.
+  // the total across all of a person's traditional and Roth IRAs. Roth IRAs began in 1998, and the
+  // catch-up in 2002. Years after the last entry keep its values; the IRS adjusts them for inflation,
+  // but the page doesn't guess future increases.
   const ANNUAL_LIMITS = [
-    { from: 2015, limit: 5500, catchUp: 1000, years: '2015 to 2018' },
+    { from: 1998, limit: 2000, catchUp: 0,    years: '1998 to 2001' },
+    { from: 2002, limit: 3000, catchUp: 500,  years: '2002 to 2004' },
+    { from: 2005, limit: 4000, catchUp: 500,  years: '2005' },
+    { from: 2006, limit: 4000, catchUp: 1000, years: '2006 and 2007' },
+    { from: 2008, limit: 5000, catchUp: 1000, years: '2008 to 2012' },
+    { from: 2013, limit: 5500, catchUp: 1000, years: '2013 to 2018' },
     { from: 2019, limit: 6000, catchUp: 1000, years: '2019 to 2022' },
     { from: 2023, limit: 6500, catchUp: 1000, years: '2023' },
     { from: 2024, limit: 7000, catchUp: 1000, years: '2024 and 2025' },
@@ -57,7 +65,7 @@
 
   const FIELDS = {
     age:       { min: 1,    max: 99,    step: 1 },
-    startYear: { min: 2015, max: 2080,  step: 1 },
+    startYear: { min: 1998, max: 2080,  step: 1 },
     contrib:   { min: 0,    max: Math.max.apply(null, ANNUAL_LIMITS.map(a => a.limit + a.catchUp)), step: 100 },
     gross:     { min: 0,    max: 20,    step: 0.05, prec: 2 },
     fees:      { min: 0,    max: 5,     step: 0.01, prec: 2 },
