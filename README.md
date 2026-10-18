@@ -27,6 +27,15 @@ node --test
 
 GitHub Actions runs them on every push and pull request, and only deploys to GitHub Pages when they pass.
 
+## How the files fit together
+
+The interface is shared, so another country's page can reuse it. Each country brings its own rules and wording.
+
+- `shared/calculator.js` and `shared/calculator.css` are the interface: the sentence inputs, chart, scrubber card, tiles, table, what-if scenarios, theme toggle and share link.
+- `index.html` is the South African page: its wording, labels and footer.
+- `model.js` holds the SARS rules. The page and the tests both use it.
+- `config.js` gives the shared interface the rand formatting and the wording that depends on SARS rules, like the limits in the hint and the lifetime-limit note.
+
 ## Updating
 
-The page is `index.html` and the model is `model.js`. Edit, commit, push. The workflow tests and deploys in a minute or two.
+Edit, commit, push. The workflow runs the rule tests, checks that every file the page uses is included, and deploys in a minute or two.
