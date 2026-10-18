@@ -177,7 +177,7 @@ button { font: inherit; color: inherit; }
 
 .tablewrap { margin-top: 22px; overflow: auto; max-height: max(360px, calc(100vh - 120px)); border: 1px solid var(--line); border-radius: 12px; outline: none; }
 .tablewrap:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 860px; font-size: 13px; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 860px; font-size: 13px; line-height: normal; }
 th, td { padding: 10px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
 th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; color: var(--muted); position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line-2); }
 th:first-child, td:first-child { position: sticky; left: 0; z-index: 1; border-right: 1px solid var(--line); }
